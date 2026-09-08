@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "traffic": "Traffic",
+    "emergency": "Emergency",
+    "water": "Water",
+    "citizen": "Citizen",
+    "executive": "Executive",
+    "admin": "Admin"
+  },
+  "common": {
+    "loading": "Loading",
+    "viewDetail": "View detail",
+    "close": "Close",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "language": "Language"
+  },
+  "landing": {
+    "title": "Smart Chennai",
+    "subtitle": "AI-powered integrated command and control for a 8.7 million-citizen city",
+    "cta": "Launch dashboard",
+    "statCongestion": "Congestion reduction target",
+    "statResponse": "Faster emergency response",
+    "statCitizens": "Citizens served",
+    "statZones": "Zones monitored"
+  },
+  "kpi": {
+    "avgCongestion": "Avg congestion",
+    "activeIncidents": "Active incidents",
+    "floodAlerts": "Flood alerts",
+    "camerasOnline": "Cameras online"
+  },
+  "citizenPortal": {
+    "reportIssue": "Report an issue",
+    "reportReceived": "Report received — reference {id}",
+    "trackReport": "Track my report",
+    "liveAlerts": "Live alerts",
+    "nearbyReports": "{count} others reported this near you",
+    "rateResolution": "Rate this resolution"
+  }
+}

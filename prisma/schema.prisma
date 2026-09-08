@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  citizen
+  operator
+  dept_head
+  dm
+  super_admin
+}
+
+enum IncidentType {
+  traffic
+  fire
+  medical
+  flood
+}
+
+enum IncidentStatus {
+  reported
+  verified
+  dispatched
+  resolved
+}
+
+enum IncidentSource {
+  citizen
+  sensor
+  department
+}
+
+model Zone {
+  id         String    @id @default(cuid())
+  name       String
+  boundary   Json // GeoJSON polygon
+  population Int
+  junctions  Junction[]
+  waterSensors WaterSensor[]
+}
+
+model Junction {
+  id              String            @id @default(cuid())
+  zoneId          String
+  zone            Zone              @relation(fields: [zoneId], references: [id])
+  name            String
+  lat             Float
+  lng             Float
+  trafficReadings TrafficReading[]
+  cctvFeeds       CCTVFeed[]
+}
+
+model TrafficReading {
+  id               String   @id @default(cuid())
+  junctionId       String
+  junction         Junction @relation(fields: [junctionId], references: [id])
+  timestamp        DateTime @default(now())
+  vehiclesPerHour  Int
+  avgSpeed         Float
+  congestionLevel  Float // 0-1
+
+  @@index([junctionId, timestamp])
+}
+
+model Incident {
+  id         String         @id @default(cuid())
+  type       IncidentType
+  lat        Float
+  lng        Float
+  severity   Int // 1-5
+  status     IncidentStatus @default(reported)
+  source     IncidentSource
+  reportedBy Int            @default(1) // dedup counter, see Phase 4.5
+  reportedAt DateTime       @default(now())
+  resolvedAt DateTime?
+
+  @@index([status, severity])
+}
+
+model WaterSensor {
+  id         String   @id @default(cuid())
+  zoneId     String
+  zone       Zone     @relation(fields: [zoneId], references: [id])
+  lat        Float
+  lng        Float
+  waterLevel Float // cm
+  timestamp  DateTime @default(now())
+
+  @@index([zoneId, timestamp])
+}
+
+model CCTVFeed {
+  id         String   @id @default(cuid())
+  junctionId String
+  junction   Junction @relation(fields: [junctionId], references: [id])
+  lat        Float
+  lng        Float
+  status     String // online | offline
+  lastEvent  String?
+}
+
+model User {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  role            Role     @default(citizen)
+  department      String?
+  preferredLocale String   @default("en")
+  createdAt       DateTime @default(now())
+}

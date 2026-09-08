@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "overview": "अवलोकन",
+    "traffic": "यातायात",
+    "emergency": "आपातकाल",
+    "water": "जल",
+    "citizen": "नागरिक",
+    "executive": "प्रशासन",
+    "admin": "व्यवस्थापक"
+  },
+  "common": {
+    "loading": "लोड हो रहा है",
+    "viewDetail": "विवरण देखें",
+    "close": "बंद करें",
+    "submit": "सबमिट करें",
+    "cancel": "रद्द करें",
+    "language": "भाषा"
+  },
+  "landing": {
+    "title": "स्मार्ट चेन्नई",
+    "subtitle": "8.7 मिलियन नागरिकों वाले शहर के लिए एआई-संचालित एकीकृत कमान और नियंत्रण प्रणाली",
+    "cta": "डैशबोर्ड खोलें",
+    "statCongestion": "यातायात भीड़ में कमी का लक्ष्य",
+    "statResponse": "तेज़ आपातकालीन प्रतिक्रिया",
+    "statCitizens": "सेवा प्राप्त नागरिक",
+    "statZones": "निगरानी किए गए क्षेत्र"
+  },
+  "kpi": {
+    "avgCongestion": "औसत भीड़",
+    "activeIncidents": "सक्रिय घटनाएं",
+    "floodAlerts": "बाढ़ चेतावनियां",
+    "camerasOnline": "सक्रिय कैमरे"
+  },
+  "citizenPortal": {
+    "reportIssue": "समस्या दर्ज करें",
+    "reportReceived": "रिपोर्ट प्राप्त हुई — संदर्भ {id}",
+    "trackReport": "अपनी रिपोर्ट ट्रैक करें",
+    "liveAlerts": "लाइव चेतावनियां",
+    "nearbyReports": "आपके आस-पास {count} अन्य लोगों ने इसकी सूचना दी है",
+    "rateResolution": "समाधान को रेट करें"
+  }
+}
