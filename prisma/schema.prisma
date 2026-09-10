@@ -53,6 +53,32 @@ model Junction {
   lng             Float
   trafficReadings TrafficReading[]
   cctvFeeds       CCTVFeed[]
+  signalOverride  SignalOverride?
+  auditLogs       AuditLog[]
+}
+
+model SignalOverride {
+  id            String   @id @default(cuid())
+  junctionId    String   @unique
+  junction      Junction @relation(fields: [junctionId], references: [id])
+  greenDuration Int      @default(45)
+  redDuration   Int      @default(45)
+  updatedAt     DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  junctionId  String?
+  junction    Junction? @relation(fields: [junctionId], references: [id])
+  incidentId  String?
+  actionType  String
+  oldValues   Json?
+  newValues   Json?
+  operatorId  String?
+  timestamp   DateTime @default(now())
+
+  @@index([junctionId, timestamp])
+  @@index([incidentId, timestamp])
 }
 
 model TrafficReading {
@@ -67,31 +93,63 @@ model TrafficReading {
   @@index([junctionId, timestamp])
 }
 
+enum UnitType {
+  ambulance
+  fire_truck
+}
+
+model EmergencyUnit {
+  id          String     @id @default(cuid())
+  name        String
+  type        UnitType
+  lat         Float
+  lng         Float
+  isAvailable Boolean    @default(true)
+  incidents   Incident[]
+}
+
 model Incident {
-  id         String         @id @default(cuid())
-  type       IncidentType
-  lat        Float
-  lng        Float
-  severity   Int // 1-5
-  status     IncidentStatus @default(reported)
-  source     IncidentSource
-  reportedBy Int            @default(1) // dedup counter, see Phase 4.5
-  reportedAt DateTime       @default(now())
-  resolvedAt DateTime?
+  id           String         @id @default(cuid())
+  type         IncidentType
+  lat          Float
+  lng          Float
+  severity     Int // 1-5
+  status       IncidentStatus @default(reported)
+  source       IncidentSource
+  reportedBy    Int            @default(1) // dedup counter, see Phase 4.5
+  description   String?
+  priorityScore Float?         // MCDA priority score (0-100)
+  referenceId   String?        @unique
+  reportedAt    DateTime       @default(now())
+  dispatchedAt DateTime?
+  resolvedAt   DateTime?
+  unitId       String?
+  unit         EmergencyUnit? @relation(fields: [unitId], references: [id])
 
   @@index([status, severity])
 }
 
 model WaterSensor {
-  id         String   @id @default(cuid())
+  id         String         @id @default(cuid())
   zoneId     String
-  zone       Zone     @relation(fields: [zoneId], references: [id])
+  zone       Zone           @relation(fields: [zoneId], references: [id])
   lat        Float
   lng        Float
   waterLevel Float // cm
-  timestamp  DateTime @default(now())
+  timestamp  DateTime       @default(now())
+  readings   WaterReading[]
 
   @@index([zoneId, timestamp])
+}
+
+model WaterReading {
+  id         String      @id @default(cuid())
+  sensorId   String
+  sensor     WaterSensor @relation(fields: [sensorId], references: [id])
+  timestamp  DateTime    @default(now())
+  waterLevel Float // cm
+
+  @@index([sensorId, timestamp])
 }
 
 model CCTVFeed {
@@ -104,6 +162,24 @@ model CCTVFeed {
   lastEvent  String?
 }
 
+// Singleton row (key = "global") holding persisted simulator settings,
+// polled by the worker each tick.
+model SimulationSetting {
+  id               String   @id @default(cuid())
+  key              String   @unique @default("global")
+  monsoonEnabled   Boolean  @default(false)
+  demoModeEnabled  Boolean  @default(false)
+  slaThresholdMins Int      @default(30)
+  trafficWeight    Int      @default(30)
+  responseWeight   Int      @default(25)
+  floodWeight      Int      @default(25)
+  incidentWeight   Int      @default(10)
+  citizenSatWeight Int      @default(10)
+  rateLimitMax     Int      @default(100)
+  rateLimitWindow  Int      @default(900000) // ms
+  updatedAt        DateTime @updatedAt
+}
+
 model User {
   id              String   @id @default(cuid())
   name            String
@@ -111,5 +187,7 @@ model User {
   role            Role     @default(citizen)
   department      String?
   preferredLocale String   @default("en")
+  isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
 }
+

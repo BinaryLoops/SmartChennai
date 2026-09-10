@@ -47,6 +47,42 @@ async function main() {
     });
   }
 
+  console.log("Seeding CCTV feeds...");
+  await prisma.cCTVFeed.deleteMany(); // safe re-seed
+  const allJunctions = await prisma.junction.findMany({ select: { id: true, lat: true, lng: true } });
+  for (const j of allJunctions) {
+    await prisma.cCTVFeed.create({
+      data: {
+        junctionId: j.id,
+        lat: j.lat + (Math.random() - 0.5) * 0.001,
+        lng: j.lng + (Math.random() - 0.5) * 0.001,
+        status: Math.random() < 0.85 ? "online" : "offline",
+        lastEvent: null,
+      },
+    });
+  }
+
+  console.log("Seeding water sensors...");
+  for (const zone of zones) {
+    for (let s = 0; s < 2; s++) {
+      await prisma.waterSensor.create({
+        data: {
+          zoneId: zone.id,
+          lat: 13.0 + Math.random() * 0.15,
+          lng: 80.15 + Math.random() * 0.15,
+          waterLevel: 20 + Math.random() * 40, // baseline 20–60 cm
+        },
+      });
+    }
+  }
+
+  console.log("Seeding simulation settings...");
+  await prisma.simulationSetting.upsert({
+    where: { key: "global" },
+    update: {},
+    create: { key: "global", monsoonEnabled: false },
+  });
+
   console.log("Seed complete.");
 }
 

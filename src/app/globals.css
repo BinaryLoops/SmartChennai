@@ -1,3 +1,5 @@
+@import "leaflet/dist/leaflet.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -42,3 +44,58 @@ body {
     background-position: 0 50%;
   }
 }
+
+/* ── Leaflet dark-theme overrides ── */
+.leaflet-container {
+  background: #0b0e14 !important;
+  font-family: inherit;
+}
+
+.leaflet-tooltip {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.leaflet-tooltip::before {
+  display: none !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #151a24 !important;
+  color: #e5e7eb !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-popup-tip {
+  background: #151a24 !important;
+}
+
+/* Incident marker pulse animation */
+@keyframes incidentPulse {
+  0% {
+    opacity: 1;
+    stroke-width: 2;
+  }
+  50% {
+    opacity: 0.6;
+    stroke-width: 4;
+  }
+  100% {
+    opacity: 1;
+    stroke-width: 2;
+  }
+}
+
+.incident-pulse {
+  animation: incidentPulse 2s ease-in-out infinite;
+}
+
+/* Hide Leaflet attribution to keep the dark UI clean */
+.leaflet-control-attribution {
+  display: none !important;
+}
+

@@ -37,6 +37,11 @@ Thumbs.db
 *.tmp
 *.temp
 .cache/
+*.rdb
+*.tsbuildinfo
+predictive/venv/
+__pycache__/
+*.py[cod]
 
 # Sensitive files (auto-detected)
 .env

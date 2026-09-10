@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+asyncpg
+pandas
+numpy
+statsmodels
+python-dotenv
+httpx
+pytest

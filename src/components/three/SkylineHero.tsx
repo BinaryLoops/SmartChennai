@@ -1,60 +1,94 @@
 "use client";
 
+import { useState, useEffect, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
-import { useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
-import type { Group } from "three";
+import { CitySkyline } from "./CitySkyline";
+import { FlyoverNetwork } from "./FlyoverNetwork";
+import { VehicleTraffic } from "./VehicleTraffic";
+import { CoastalWater } from "./CoastalWater";
+import { SmartCityMarkers } from "./SmartCityMarkers";
+import { CityEnvironment } from "./CityEnvironment";
 
-/**
- * Placeholder low-poly "skyline" — a cluster of extruded boxes of random
- * height, slowly auto-rotating, standing in for Chennai's silhouette.
- * Swap the box generation for an imported GLTF model later without
- * touching anything else on the landing page.
- */
-function Buildings() {
-  const group = useRef<Group>(null);
-
-  const buildings = useMemo(
-    () =>
-      Array.from({ length: 24 }, () => ({
-        x: (Math.random() - 0.5) * 8,
-        z: (Math.random() - 0.5) * 8,
-        height: 0.6 + Math.random() * 2.4,
-      })),
-    []
-  );
-
-  useFrame((_, delta) => {
-    if (group.current) group.current.rotation.y += delta * 0.08;
-  });
-
+function CanvasLoader() {
   return (
-    <group ref={group}>
-      {buildings.map((b, i) => (
-        <mesh key={i} position={[b.x, b.height / 2, b.z]}>
-          <boxGeometry args={[0.4, b.height, 0.4]} />
-          <meshStandardMaterial color="#151A24" emissive="#22D3EE" emissiveIntensity={0.08} />
-        </mesh>
-      ))}
-    </group>
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-base/90 text-center backdrop-blur-md z-20">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent-cyan border-t-transparent mb-3" />
+      <span className="text-xs font-bold tracking-widest text-accent-cyan uppercase">
+        INITIALIZING CHENNAI DIGITAL TWIN
+      </span>
+      <span className="text-[10px] text-text-muted mt-1 uppercase">
+        Loading 3D urban environment & traffic simulation...
+      </span>
+    </div>
+  );
+}
+
+function WebGLFallback() {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-base p-6 text-center">
+      <div className="max-w-md rounded-2xl border border-cyan-500/20 bg-slate-900/60 p-8 backdrop-blur-md">
+        <h3 className="text-lg font-bold text-accent-cyan uppercase tracking-wide">
+          SMART CHENNAI DIGITAL TWIN
+        </h3>
+        <p className="mt-2 text-xs text-text-secondary">
+          WebGL visualization unavailable. Performance mode active for Integrated Command & Control Centre operations.
+        </p>
+      </div>
+    </div>
   );
 }
 
 export function SkylineHero() {
+  const [isMobile, setIsMobile] = useState(false);
+  const [webGlSupported, setWebGlSupported] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsMobile(window.innerWidth < 768);
+      try {
+        const canvas = document.createElement("canvas");
+        const hasWebGL = !!(
+          window.WebGLRenderingContext &&
+          (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+        );
+        setWebGlSupported(hasWebGL);
+      } catch {
+        setWebGlSupported(false);
+      }
+    }
+  }, []);
+
+  if (!webGlSupported) {
+    return <WebGLFallback />;
+  }
+
   return (
-    <div className="h-72 w-full">
-      <Canvas camera={{ position: [6, 4, 6], fov: 45 }}>
-        <ambientLight intensity={0.6} />
-        <pointLight position={[5, 8, 5]} intensity={0.8} color="#22D3EE" />
-        <Buildings />
-        <OrbitControls
-          enableZoom={false}
-          enablePan={false}
-          autoRotate
-          autoRotateSpeed={0.6}
-        />
-      </Canvas>
+    <div className="relative h-full w-full overflow-hidden select-none">
+      <Suspense fallback={<CanvasLoader />}>
+        <Canvas
+          camera={{ position: [28, 22, 38], fov: 40 }}
+          dpr={[1, 1.5]}
+          gl={{ antialias: true, alpha: true }}
+          className="h-full w-full"
+        >
+          <CityEnvironment />
+          <CitySkyline mobile={isMobile} />
+          <FlyoverNetwork />
+          <VehicleTraffic mobile={isMobile} />
+          <CoastalWater />
+          <SmartCityMarkers />
+        </Canvas>
+      </Suspense>
+
+      {/* Subtle Digital Twin Watermark overlay */}
+      <div className="absolute bottom-4 right-6 pointer-events-none hidden sm:flex flex-col items-end opacity-60">
+        <span className="text-[10px] font-mono font-bold tracking-widest text-accent-cyan uppercase">
+          CHENNAI 3D DIGITAL TWIN • REAL-TIME SIMULATION
+        </span>
+        <span className="text-[9px] text-text-muted">
+          INTEGRATED COMMAND & CONTROL CENTRE V2.0
+        </span>
+      </div>
     </div>
   );
 }

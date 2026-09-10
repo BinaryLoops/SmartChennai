@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
+import { getMessages, unstable_setRequestLocale } from "next-intl/server";
 import { locales, type Locale } from "@/i18n";
 import "../globals.css";
 
@@ -21,6 +21,7 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: { locale: Locale };
 }) {
+  unstable_setRequestLocale(locale);
   const messages = await getMessages();
 
   return (
