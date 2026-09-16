@@ -1,18 +1,25 @@
 "use client";
 
 import { useMemo } from "react";
-import { CircleMarker, Tooltip } from "react-leaflet";
+import { Marker, Tooltip } from "react-leaflet";
 import type { TrafficUpdatePayload } from "@packages/types";
 import type { JunctionData } from "./ChennaiMap";
+import { createSemanticIcon, StatusColor } from "../map/MapIcons";
 
 interface JunctionMarkersProps {
   junctions: JunctionData[];
   trafficByJunction: Map<string, TrafficUpdatePayload>;
 }
 
-function congestionColor(level: number): string {
-  if (level <= 0.35) return "#22C55E";
-  if (level <= 0.65) return "#F59E0B";
+function congestionStatus(level: number): StatusColor {
+  if (level <= 0.35) return "HEALTHY";
+  if (level <= 0.65) return "WARNING";
+  return "CRITICAL";
+}
+
+function statusColor(status: StatusColor): string {
+  if (status === "HEALTHY") return "#22C55E";
+  if (status === "WARNING") return "#F59E0B";
   return "#EF4444";
 }
 
@@ -27,8 +34,8 @@ export function JunctionMarkers({
       const vehiclesPerHour = live?.vehiclesPerHour ?? junction.vehiclesPerHour;
       const avgSpeed = live?.avgSpeedKph ?? junction.avgSpeed;
       const spiked = live?.spiked ?? false;
-      const color = congestionColor(congestion);
-      const radius = 6 + congestion * 10;
+      const status = spiked ? "CRITICAL" : congestionStatus(congestion);
+      const color = statusColor(status);
 
       return {
         ...junction,
@@ -36,8 +43,8 @@ export function JunctionMarkers({
         vehiclesPerHour,
         avgSpeed,
         spiked,
+        status,
         color,
-        radius,
       };
     });
   }, [junctions, trafficByJunction]);
@@ -45,17 +52,10 @@ export function JunctionMarkers({
   return (
     <>
       {markers.map((m) => (
-        <CircleMarker
+        <Marker
           key={m.id}
-          center={[m.lat, m.lng]}
-          radius={m.radius}
-          pathOptions={{
-            color: m.spiked ? "#FFFFFF" : m.color,
-            fillColor: m.color,
-            fillOpacity: 0.8,
-            weight: m.spiked ? 2.5 : 1.5,
-            opacity: 1,
-          }}
+          position={[m.lat, m.lng]}
+          icon={createSemanticIcon("TRAFFIC", m.status)}
         >
           <Tooltip className="junction-tooltip">
             <div style={{
@@ -78,7 +78,7 @@ export function JunctionMarkers({
               )}
             </div>
           </Tooltip>
-        </CircleMarker>
+        </Marker>
       ))}
     </>
   );

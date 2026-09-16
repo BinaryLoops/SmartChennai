@@ -26,6 +26,11 @@ const CongestionChart = dynamic(
   { ssr: false }
 );
 
+import { OperationsPanel } from "@/components/dashboard/OperationsPanel";
+import { CityHealthWidget } from "@/components/dashboard/CityHealthWidget";
+import { ZoneContextPanel } from "@/components/dashboard/ZoneContextPanel";
+import { LiveEventStream } from "@/components/dashboard/LiveEventStream";
+
 const IncidentToast = dynamic(
   () => import("@/components/dashboard/IncidentToast").then((m) => m.IncidentToast),
   { ssr: false }
@@ -78,14 +83,63 @@ export default function OverviewPage() {
 
   // KPI values: prefer live socket data, fall back to initial
   const avgCongestion = socket.avgCongestion || 0;
-  const activeIncidents =
-    socket.activeIncidents || (initialData?.incidents?.length ?? 0);
+  const activeIncidents = socket.activeIncidents || (initialData?.incidents?.length ?? 0);
   const floodAlerts = socket.floodAlerts || 0;
   const camerasOnline = initialData?.camerasOnline ?? 0;
+  const totalCameras = initialData?.totalCameras ?? 0;
 
   // Determine accent color for congestion
-  const congestionAccent =
-    avgCongestion <= 35 ? "green" : avgCongestion <= 65 ? "amber" : "red";
+  const congestionAccent = avgCongestion <= 35 ? "green" : avgCongestion <= 65 ? "amber" : "red";
+
+  // --- Calculate Density Metrics ---
+  const now = new Date();
+  const timeFormatter = new Intl.DateTimeFormat("en-US", { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  const lastUpdated = timeFormatter.format(now);
+
+  // 1. Congestion Context
+  let congestionTrend = "";
+  let congestionTrendColor: "red" | "green" | "amber" | "gray" = "gray";
+  if (congestionHistory.length > 0) {
+    // Find reading roughly 30 mins ago, or oldest
+    const thirtyMinsAgo = new Date(now.getTime() - 30 * 60000);
+    const reference = congestionHistory.find(h => new Date(h.timestamp) >= thirtyMinsAgo) || congestionHistory[0];
+    const diff = avgCongestion - reference.avgCongestion;
+    const diffMins = Math.max(1, Math.round((now.getTime() - new Date(reference.timestamp).getTime()) / 60000));
+    const sign = diff > 0 ? "↑" : diff < 0 ? "↓" : "";
+    if (diff !== 0) {
+      congestionTrend = `${sign} ${Math.abs(diff)} pp vs ${diffMins} min`;
+      congestionTrendColor = diff > 0 ? "red" : "green";
+    } else {
+      congestionTrend = `Unchanged vs ${diffMins} min`;
+    }
+  }
+  const congestedJunctionsCount = Array.from(socket.trafficByJunction.values()).filter(r => r.congestionLevel >= 0.8).length;
+  const totalJunctions = socket.trafficByJunction.size || initialData?.junctions.length || 0;
+  const congestionSubtext = congestedJunctionsCount > 0 ? `${congestedJunctionsCount} / ${totalJunctions} junctions affected` : "All junctions normal";
+
+  // 2. Incident Context
+  const criticalIncidents = allIncidents.filter(i => i.severity === 5 && i.status !== "resolved").length;
+  const incidentTrend = criticalIncidents > 0 ? `${criticalIncidents} critical` : "No critical";
+  const incidentTrendColor = criticalIncidents > 0 ? "red" : "green";
+  const affectedZonesCount = new Set(allIncidents.filter(i => i.status !== "resolved").map(i => {
+    // try to find zone from location? Actually incidents don't explicitly have zone in initialData, they have lat/lng
+    // A rough proxy is enough, or just 'active incidents'
+    return i.lat.toFixed(3) + i.lng.toFixed(3);
+  })).size;
+  const incidentSubtext = affectedZonesCount > 0 ? `${affectedZonesCount} areas affected` : "No active incidents";
+
+  // 3. Water Context
+  let floodSubtext = "No active alerts";
+  if (floodAlerts > 0) {
+    const dangerSensors = Array.from(socket.waterBySensor.values()).filter(w => w.riskLevel === "danger" || w.riskLevel === "warning");
+    const uniqueZones = Array.from(new Set(dangerSensors.map(s => s.zoneId)));
+    floodSubtext = `${uniqueZones.length} zones affected`;
+  }
+
+  // 4. CCTV Context
+  const offlineCameras = totalCameras - camerasOnline;
+  const degradedCameras = 0; // future enhancement
+  const cameraSubtext = offlineCameras > 0 ? `${degradedCameras} degraded, ${offlineCameras} offline` : "All systems operational";
 
   if (loading) {
     return (
@@ -121,44 +175,79 @@ export default function OverviewPage() {
           value={avgCongestion}
           suffix="%"
           accent={congestionAccent as "green" | "amber" | "red"}
+          trend={congestionTrend}
+          trendColor={congestionTrendColor}
+          subtext={congestionSubtext}
+          lastUpdated={lastUpdated}
         />
         <KpiCard
           label={t("activeIncidents")}
           value={activeIncidents}
           accent="red"
+          trend={incidentTrend}
+          trendColor={incidentTrendColor}
+          subtext={incidentSubtext}
+          lastUpdated={lastUpdated}
         />
         <KpiCard
           label={t("floodAlerts")}
           value={floodAlerts}
           accent="amber"
+          trend={floodAlerts > 0 ? "Elevated Risk" : "Normal"}
+          trendColor={floodAlerts > 0 ? "amber" : "green"}
+          subtext={floodSubtext}
+          lastUpdated={lastUpdated}
         />
         <KpiCard
           label={t("camerasOnline")}
           value={camerasOnline}
+          suffix={` / ${totalCameras}`}
           accent="cyan"
+          trend={offlineCameras > 0 ? "Maintenance Required" : "Optimal"}
+          trendColor={offlineCameras > 0 ? "amber" : "green"}
+          subtext={cameraSubtext}
+          lastUpdated={lastUpdated}
         />
       </div>
 
-      {/* Map + Chart */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        {/* Map takes 2/3 */}
-        <div className="lg:col-span-2">
-          <div className="h-[520px]">
-            {initialData && (
-              <ChennaiMap
-                zones={initialData.zones}
-                junctions={initialData.junctions}
-                cameras={initialData.cameras}
-                incidents={allIncidents}
-                trafficByJunction={socket.trafficByJunction}
-              />
-            )}
+      {/* Map + Chart + Side Panels */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-4">
+        
+        {/* Main Content (Map, Chart, Operations) */}
+        <div className="xl:col-span-3 space-y-5">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+            {/* Map takes 2/3 */}
+            <div className="lg:col-span-2">
+              <div className="h-[520px]">
+                {initialData && (
+                  <ChennaiMap
+                    zones={initialData.zones}
+                    junctions={initialData.junctions}
+                    cameras={initialData.cameras}
+                    incidents={allIncidents.filter(i => i.status !== "resolved")}
+                    trafficByJunction={socket.trafficByJunction}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Chart takes 1/3 */}
+            <div className="lg:col-span-1">
+              <CongestionChart data={congestionHistory} />
+            </div>
           </div>
+
+          {/* Operations Command Center */}
+          <OperationsPanel incidents={allIncidents} />
         </div>
 
-        {/* Chart takes 1/3 */}
-        <div className="lg:col-span-1">
-          <CongestionChart data={congestionHistory} />
+        {/* Live City State Sidebar */}
+        <div className="xl:col-span-1 space-y-5 flex flex-col h-[820px]">
+          <CityHealthWidget />
+          <ZoneContextPanel />
+          <div className="flex-1 overflow-hidden min-h-[400px]">
+            <LiveEventStream />
+          </div>
         </div>
       </div>
 

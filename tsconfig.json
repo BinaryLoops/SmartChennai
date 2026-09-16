@@ -17,6 +17,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@packages/*": ["./packages/*"],
       "@packages/types": ["./packages/types/index.ts"]
     }
   },

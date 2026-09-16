@@ -1,8 +1,9 @@
 "use client";
 
-import { MapContainer, TileLayer, CircleMarker, Tooltip, Marker } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { useTranslations } from "next-intl";
+import { createSemanticIcon, StatusColor } from "../map/MapIcons";
 
 interface Sensor {
   id: string;
@@ -53,55 +54,69 @@ export function WaterMap({ sensors, incidents, selectedSensorId, onSensorClick }
 
       {/* Render Flood Incidents */}
       {incidents.map((inc) => (
-        <Marker key={inc.id} position={[inc.lat, inc.lng]} icon={incidentIcon}>
+        <Marker key={inc.id} position={[inc.lat, inc.lng]} icon={createSemanticIcon("INCIDENT", "CRITICAL")}>
           <Tooltip>
-            <div className="font-bold text-accent-red uppercase tracking-wider text-xs">
-              {t("floodIncident")}
+            <div style={{
+              background: "#151A24",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: "8px",
+              padding: "8px 12px",
+              color: "#E5E7EB",
+              fontSize: "12px",
+              lineHeight: "1.5",
+            }}>
+              <div className="font-bold text-accent-red uppercase tracking-wider text-xs mb-1">
+                {t("floodIncident")}
+              </div>
+              <div className="text-xs">Severity: {inc.severity}</div>
             </div>
-            <div className="text-xs">Severity: {inc.severity}</div>
           </Tooltip>
         </Marker>
       ))}
 
       {/* Render Sensors */}
       {sensors.map((s) => {
-        const isSelected = selectedSensorId === s.id;
-        let color = "#22D3EE"; // normal
-        let className = "";
+        let status: StatusColor = "HEALTHY";
+        let color = "#22C55E";
         
         if (s.riskLevel === "danger") {
+          status = "CRITICAL";
           color = "#EF4444";
-          className = "animate-pulse";
         } else if (s.riskLevel === "warning") {
-          color = "#F97316";
+          status = "WARNING";
+          color = "#F59E0B";
         } else if (s.riskLevel === "watch") {
+          status = "WARNING";
           color = "#F59E0B";
         }
 
         return (
-          <CircleMarker
+          <Marker
             key={s.id}
-            center={[s.lat, s.lng]}
-            radius={isSelected ? 10 : s.riskLevel === "danger" ? 8 : 6}
+            position={[s.lat, s.lng]}
+            icon={createSemanticIcon("WATER", status)}
             eventHandlers={{
               click: () => onSensorClick(s.id),
             }}
-            className={className}
-            pathOptions={{
-              color: color,
-              fillColor: color,
-              fillOpacity: isSelected ? 0.9 : 0.6,
-              weight: isSelected ? 3 : 1,
-            }}
           >
             <Tooltip>
-              <div className="font-semibold">{s.name}</div>
-              <div className="text-xs">{t("waterLevel")}: {s.waterLevel} cm</div>
-              <div className="text-[10px] uppercase tracking-wider mt-1" style={{ color }}>
-                {t(s.riskLevel)}
+              <div style={{
+                background: "#151A24",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                color: "#E5E7EB",
+                fontSize: "12px",
+                lineHeight: "1.5",
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: "4px" }}>{s.name}</div>
+                <div>{t("waterLevel")}: {s.waterLevel} cm</div>
+                <div style={{ color, marginTop: "2px", fontWeight: 600 }} className="text-[10px] uppercase tracking-wider">
+                  {t(s.riskLevel)}
+                </div>
               </div>
             </Tooltip>
-          </CircleMarker>
+          </Marker>
         );
       })}
     </MapContainer>

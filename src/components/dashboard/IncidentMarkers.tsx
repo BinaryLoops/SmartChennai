@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, memo } from "react";
-import { CircleMarker, Tooltip } from "react-leaflet";
+import { Marker, Tooltip } from "react-leaflet";
 import type { IncidentPayload } from "@packages/types";
+import { createSemanticIcon } from "../map/MapIcons";
 
 interface IncidentMarkersProps {
   incidents: IncidentPayload[];
@@ -33,20 +34,13 @@ export const IncidentMarkers = memo(function IncidentMarkers({ incidents }: Inci
       {activeIncidents.map((incident) => {
         const color = INCIDENT_COLORS[incident.type] || "#F59E0B";
         const label = INCIDENT_LABELS[incident.type] || incident.type;
+        const status = incident.severity > 3 ? "CRITICAL" : "WARNING";
 
         return (
-          <CircleMarker
+          <Marker
             key={incident.id}
-            center={[incident.lat, incident.lng]}
-            radius={10}
-            pathOptions={{
-              color: color,
-              fillColor: color,
-              fillOpacity: 0.6,
-              weight: 2,
-              opacity: 1,
-              className: "incident-pulse",
-            }}
+            position={[incident.lat, incident.lng]}
+            icon={createSemanticIcon("INCIDENT", status)}
           >
             <Tooltip>
               <div style={{
@@ -66,7 +60,7 @@ export const IncidentMarkers = memo(function IncidentMarkers({ incidents }: Inci
                 </p>
               </div>
             </Tooltip>
-          </CircleMarker>
+          </Marker>
         );
       })}
     </>

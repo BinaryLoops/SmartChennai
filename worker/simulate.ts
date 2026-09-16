@@ -10,9 +10,22 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import { runAdvancedCorrelations } from "./simulation_extension";
+import { runAssetSimulation } from "./asset_simulation";
 import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { createRedisClient } from "../src/lib/redis";
+// STAR ADD-ON #2
+import { environmentGenerator } from "./telemetry/environment";
+import { wasteGenerator } from "./telemetry/waste";
+import { energyGenerator } from "./telemetry/energy";
+import { TelemetryContext } from "./telemetry/types";
+import { CityHealthPayload } from "../packages/types";
+import { emitEventTransition } from "./event_fabric";
+
+// STAR ADD-ON #3
+import { ScenarioEngine } from "./scenarios/engine";
+
 import {
   SOCKET_EVENTS,
   riskLevelFor,
@@ -121,12 +134,35 @@ export async function tick(
   junctions: JunctionProfile[],
   sensors: WaterSensorProfile[],
   hour: number,
+  causalMods: any,
+  io: Server<any, any, any, any>
 ): Promise<{ traffic: TrafficUpdatePayload[]; water: WaterUpdatePayload[] }> {
   const settings = await prisma.simulationSetting.findUnique({
     where: { key: "global" },
   });
   const monsoon = settings?.monsoonEnabled ?? false;
   const timestamp = new Date();
+
+  // --- Operational Interventions (Traffic) ---
+  const overrides = await prisma.signalOverride.findMany();
+  const activeOverrides = new Map<string, any>();
+  
+  for (const ov of overrides) {
+    if (ov.expiresAt && ov.expiresAt < timestamp) {
+      await prisma.signalOverride.delete({ where: { id: ov.id } });
+      await prisma.auditLog.create({
+        data: {
+          actionType: "SIGNAL_AUTO_EXPIRED",
+          junctionId: ov.junctionId,
+          oldValues: { state: "OVERRIDE" },
+          newValues: { state: "NORMAL" }
+        }
+      });
+      console.log(`[worker] signal override expired for junction ${ov.junctionId}`);
+    } else {
+      activeOverrides.set(ov.junctionId, ov);
+    }
+  }
 
   // --- Traffic ---
   const trafficReadings: {
@@ -138,10 +174,25 @@ export async function tick(
   const trafficPayloads: TrafficUpdatePayload[] = [];
 
   for (const j of junctions) {
-    const { congestion, spiked } = junctionCongestion(j, hour);
+    let { congestion, spiked } = junctionCongestion(j, hour);
+    
+    // SIMULATION/DEMO BEHAVIOR:
+    // If an operator has applied a signal override, we simulate the outcome by
+    // drastically reducing the congestion level (improving traffic flow).
+    const override = activeOverrides.get(j.id);
+    if (override) {
+      congestion = congestion * 0.4; // 60% reduction in congestion
+    }
+
+    // Apply STAR ADD-ON #3 causal modifier: baseline * (1 + modifier)
+    if (causalMods?.trafficFriction) {
+      congestion = congestion * (1 + causalMods.trafficFriction);
+    }
+
     const vehiclesPerHour = Math.round(
       clamp(congestion * j.capacity, 0, MAX_VEHICLES_PER_HOUR),
     );
+    const congestionPercent = Math.round(congestion * 100);
     const avgSpeed = Math.max(2, 45 * (1 - congestion));
 
     trafficReadings.push({ junctionId: j.id, vehiclesPerHour, avgSpeed, congestionLevel: congestion });
@@ -157,6 +208,37 @@ export async function tick(
       spiked,
       timestamp: timestamp.toISOString(),
     });
+    
+    // Emit City Event for Traffic
+    if (congestion > 0.85) {
+      // Intentionally not awaiting here to avoid blocking the simulation loop
+      emitEventTransition(prisma, io, {
+        type: "TRAFFIC",
+        severity: "CRITICAL",
+        description: `Junction ${j.name} congestion reached ${congestionPercent}% (${vehiclesPerHour} veh/h)`,
+        assetId: j.id,
+        zoneId: j.zoneId,
+        metadata: { lat: j.lat, lng: j.lng }
+      });
+    } else if (congestion > 0.70) {
+      emitEventTransition(prisma, io, {
+        type: "TRAFFIC",
+        severity: "HIGH",
+        description: `Junction ${j.name} experiencing heavy traffic (${congestionPercent}%)`,
+        assetId: j.id,
+        zoneId: j.zoneId,
+        metadata: { lat: j.lat, lng: j.lng }
+      });
+    } else {
+      emitEventTransition(prisma, io, {
+        type: "TRAFFIC",
+        severity: "NORMAL",
+        description: `Traffic at ${j.name} normalized (${congestionPercent}%)`,
+        assetId: j.id,
+        zoneId: j.zoneId,
+        metadata: { lat: j.lat, lng: j.lng }
+      });
+    }
   }
 
   await prisma.trafficReading.createMany({ data: trafficReadings });
@@ -180,6 +262,14 @@ export async function tick(
           MAX_WATER_CM,
         );
       }
+      
+      // Apply STAR ADD-ON #3 causal modifier for water level
+      if (causalMods?.waterLevelMultiplier) {
+         // Gradual application to target over tick to simulate slow rise
+         const simulatedTarget = sensor.level * (1 + causalMods.waterLevelMultiplier);
+         sensor.level = sensor.level + (simulatedTarget - sensor.level) * 0.05;
+      }
+      
       const waterLevelCm = Math.round(sensor.level * 10) / 10;
 
       await prisma.waterSensor.update({
@@ -200,6 +290,36 @@ export async function tick(
         monsoon,
         timestamp: timestamp.toISOString(),
       });
+      
+      // Emit City Event for Water
+      if (waterLevelCm > 150) {
+        emitEventTransition(prisma, io, {
+          type: "WATER",
+          severity: "CRITICAL",
+          description: `Water level at ${sensor.zoneName} reached ${waterLevelCm} cm`,
+          assetId: sensor.id,
+          zoneId: sensor.zoneId,
+          metadata: { lat: sensor.lat, lng: sensor.lng }
+        });
+      } else if (waterLevelCm > 100) {
+        emitEventTransition(prisma, io, {
+          type: "WATER",
+          severity: "HIGH",
+          description: `Water level elevated at ${sensor.zoneName} (${waterLevelCm} cm)`,
+          assetId: sensor.id,
+          zoneId: sensor.zoneId,
+          metadata: { lat: sensor.lat, lng: sensor.lng }
+        });
+      } else {
+        emitEventTransition(prisma, io, {
+          type: "WATER",
+          severity: "NORMAL",
+          description: `Water level at ${sensor.zoneName} normalized (${waterLevelCm} cm)`,
+          assetId: sensor.id,
+          zoneId: sensor.zoneId,
+          metadata: { lat: sensor.lat, lng: sensor.lng }
+        });
+      }
     }),
   );
 
@@ -283,6 +403,8 @@ async function main() {
     adapter: createAdapter(pubClient, subClient),
   });
 
+  const scenarioEngine = new ScenarioEngine(prisma, io as any);
+
   io.on("connection", (socket) => {
     console.log(`[worker] client connected (${io.engine.clientsCount} online)`);
 
@@ -296,6 +418,16 @@ async function main() {
       });
       console.log(`[worker] monsoon simulation ${monsoonEnabled ? "ENABLED" : "disabled"} | demo mode ${demoModeEnabled ? "ENABLED" : "disabled"}`);
       ack?.({ monsoonEnabled, demoModeEnabled });
+    });
+
+    socket.on(SOCKET_EVENTS.scenarioCommand as any, (payload: any, ack: any) => {
+      scenarioEngine.setCommand(payload);
+      if (payload.action === "start") {
+        console.log(`[worker] Received simulation command: start ${payload.scenarioId} at ${payload.severity} severity`);
+      } else {
+        console.log(`[worker] Received simulation command: ${payload.action}`);
+      }
+      ack?.({ success: true });
     });
 
     socket.on("disconnect", () => {
@@ -329,9 +461,84 @@ async function main() {
     }
 
     try {
-      const { traffic, water } = await tick(junctions, sensors, hour);
+      // Execute causal scenario tick
+      await scenarioEngine.runCausalTick(currentTickMs);
+      const causalMods = scenarioEngine.getModifiers();
+
+      const { traffic, water } = await tick(junctions, sensors, hour, causalMods, io as any);
       for (const payload of traffic) io.emit(SOCKET_EVENTS.trafficUpdate, payload);
       for (const payload of water) io.emit(SOCKET_EVENTS.waterUpdate, payload);
+      if (settings) await runAdvancedCorrelations(prisma, io, settings, zones);
+      // STAR ADD-ON #1 — runs every ~60s inside the existing tick loop
+      await runAssetSimulation(prisma);
+      // --- STAR ADD-ON #2: Additive Telemetry & City Health ---
+      try {
+        const simSettings = settings || { 
+          scenarioMode: "normal", 
+          simSpeedMultiplier: 1, 
+          monsoonEnabled: false 
+        };
+
+        const ctx: TelemetryContext = {
+          prisma,
+          io: io as any,
+          simulatedHour: hour,
+          speedMultiplier: simSettings.simSpeedMultiplier,
+          isMonsoon: simSettings.monsoonEnabled,
+          scenario: simSettings.scenarioMode,
+          causalMods,
+        };
+
+        const [envRes, wasteRes, energyRes] = await Promise.all([
+          environmentGenerator.runTick(ctx),
+          wasteGenerator.runTick(ctx),
+          energyGenerator.runTick(ctx)
+        ]);
+
+        const allReadings = [...envRes.readings, ...wasteRes.readings, ...energyRes.readings];
+        if (allReadings.length > 0) {
+          io.emit(SOCKET_EVENTS.telemetryUpdate, allReadings);
+        }
+
+        // City Health Aggregation
+        // Combine old explicit traffic/water health proxies and new scores
+        const trafficHealth = 100 - (traffic.reduce((acc, t) => acc + t.congestionLevel, 0) / (traffic.length || 1)) * 100;
+        const waterHealth = water.some(w => w.riskLevel === "danger" || w.riskLevel === "warning") ? 50 : 100;
+        
+        const envScore = envRes.healthScore ?? 100;
+        const wasteScore = wasteRes.healthScore ?? 100;
+        const energyScore = energyRes.healthScore ?? 100;
+
+        const overallScore = Math.round(
+          (trafficHealth * 0.3) + 
+          (waterHealth * 0.2) + 
+          (envScore * 0.2) + 
+          (wasteScore * 0.15) + 
+          (energyScore * 0.15)
+        );
+
+        const healthPayload: CityHealthPayload = {
+          overallScore: Math.max(0, Math.min(100, overallScore)),
+          components: {
+            traffic: Math.round(trafficHealth),
+            water: Math.round(waterHealth),
+            environment: envScore,
+            waste: wasteScore,
+            energy: energyScore,
+            cctv: 100, // Placeholder for future add-on
+            emergency: 100 // Placeholder for future add-on
+          },
+          timestamp: new Date().toISOString()
+        };
+
+        io.emit(SOCKET_EVENTS.cityHealthUpdate, healthPayload);
+
+      } catch (err) {
+        console.error("[worker] additive telemetry phase failed (isolated):", err);
+      }
+
+      // --------------------------------------------------------
+
     } catch (err) {
       console.error("[worker] tick failed:", err);
     }

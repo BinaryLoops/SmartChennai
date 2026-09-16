@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import type { TrafficUpdatePayload, IncidentPayload } from "@packages/types";
+import { LayersControl } from "react-leaflet";
+import { MapFocusController } from "../map/MapFocusController";
+import { AssetDetailsPanel } from "../map/AssetDetailsPanel";
 
 // Dynamic import for Leaflet (SSR-incompatible)
 const MapContainer = dynamic(
@@ -15,9 +18,10 @@ const TileLayer = dynamic(
 );
 
 // Sub-layers loaded dynamically to avoid SSR issues
-const ZoneLayer = dynamic(() => import("./ZoneLayer").then((m) => m.ZoneLayer), {
-  ssr: false,
-});
+const MapLabels = dynamic(
+  () => import("./MapLabels").then((m) => m.MapLabels),
+  { ssr: false }
+);
 const JunctionMarkers = dynamic(
   () => import("./JunctionMarkers").then((m) => m.JunctionMarkers),
   { ssr: false }
@@ -28,6 +32,14 @@ const CCTVMarkers = dynamic(
 );
 const IncidentMarkers = dynamic(
   () => import("./IncidentMarkers").then((m) => m.IncidentMarkers),
+  { ssr: false }
+);
+const WasteMarkers = dynamic(
+  () => import("./WasteMarkers").then((m) => m.WasteMarkers),
+  { ssr: false }
+);
+const EnergyMarkers = dynamic(
+  () => import("./EnergyMarkers").then((m) => m.EnergyMarkers),
   { ssr: false }
 );
 
@@ -66,9 +78,9 @@ interface ChennaiMapProps {
   trafficByJunction: Map<string, TrafficUpdatePayload>;
 }
 
-// Chennai center coordinates
-const CHENNAI_CENTER: [number, number] = [13.0827, 80.2707];
-const CHENNAI_ZOOM = 12;
+// Chennai center coordinates (approximate middle of seeded zones)
+const CHENNAI_CENTER: [number, number] = [13.0, 80.22];
+const CHENNAI_ZOOM = 11;
 
 export function ChennaiMap({
   zones,
@@ -93,6 +105,7 @@ export function ChennaiMap({
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-card border border-border">
+      <AssetDetailsPanel />
       <MapContainer
         center={CHENNAI_CENTER}
         zoom={CHENNAI_ZOOM}
@@ -105,13 +118,42 @@ export function ChennaiMap({
           url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
           attribution="Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ"
         />
-        <ZoneLayer zones={zones} trafficByJunction={trafficByJunction} />
-        <JunctionMarkers
-          junctions={junctions}
-          trafficByJunction={trafficByJunction}
-        />
-        <CCTVMarkers cameras={cameras} />
-        <IncidentMarkers incidents={incidents} />
+        <MapFocusController />
+        <MapLabels zones={zones} junctions={junctions} />
+        <LayersControl position="topright">
+          <LayersControl.Overlay name="Traffic Signals" checked>
+            <div>
+              <JunctionMarkers
+                junctions={junctions}
+                trafficByJunction={trafficByJunction}
+              />
+            </div>
+          </LayersControl.Overlay>
+          
+          <LayersControl.Overlay name="Incidents" checked>
+            <div>
+              <IncidentMarkers incidents={incidents} />
+            </div>
+          </LayersControl.Overlay>
+          
+          <LayersControl.Overlay name="CCTV Cameras" checked>
+            <div>
+              <CCTVMarkers cameras={cameras} />
+            </div>
+          </LayersControl.Overlay>
+          
+          <LayersControl.Overlay name="Waste Operations" checked>
+            <div>
+              <WasteMarkers />
+            </div>
+          </LayersControl.Overlay>
+          
+          <LayersControl.Overlay name="Energy Infrastructure" checked>
+            <div>
+              <EnergyMarkers />
+            </div>
+          </LayersControl.Overlay>
+        </LayersControl>
       </MapContainer>
     </div>
   );

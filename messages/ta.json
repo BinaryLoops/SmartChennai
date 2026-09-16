@@ -7,7 +7,8 @@
     "citizen": "குடிமக்கள்",
     "executive": "நிர்வாகம்",
     "admin": "நிர்வாகி",
-    "queueHealth": "வரிசை நிலை"
+    "queueHealth": "வரிசை நிலை",
+    "environment": "Environment"
   },
   "common": {
     "loading": "ஏற்றுகிறது",
@@ -377,5 +378,17 @@
     "liveAiGenerated": "நேரலை • ஏஐ உருவாக்கப்பட்டது",
     "generatingNext": "உருவாக்கப்படுகிறது",
     "aiAnalyticsActive": "ஏஐ பகுப்பாய்வு செயலில் உள்ளது"
+  },
+  "environment": {
+    "environmentCommand": "Environment Command",
+    "activeAlerts": "Active Alerts",
+    "criticalLevels": "Critical Levels",
+    "highestAqi": "Highest AQI",
+    "sensorsOnline": "Sensors Online",
+    "alerts": "Alerts & Status",
+    "normal": "All conditions normal",
+    "aqi": "AQI",
+    "status": "Status",
+    "sensorDetails": "Select a sensor on the map to view details."
   }
 }

@@ -3,6 +3,8 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, unstable_setRequestLocale } from "next-intl/server";
 import { locales, type Locale } from "@/i18n";
 import "../globals.css";
+import { Global3DBackground } from "@/components/ui/Global3DBackground";
+import { MapProvider } from "@/components/map/MapContext";
 
 export const metadata: Metadata = {
   title: "Smart Chennai — AI-Powered ICCC",
@@ -28,7 +30,10 @@ export default async function LocaleLayout({
     <html lang={locale} className="dark">
       <body className="bg-base text-text-primary antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          {children}
+          <MapProvider>
+            <Global3DBackground />
+            <div className="relative z-10 h-full w-full">{children}</div>
+          </MapProvider>
         </NextIntlClientProvider>
       </body>
     </html>

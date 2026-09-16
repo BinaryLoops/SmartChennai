@@ -6,7 +6,7 @@ import { z } from "zod";
 const createUserSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  role: z.enum(["citizen", "operator", "dept_head", "dm", "super_admin"]),
+  role: z.enum(["citizen", "traffic_operator", "emergency_operator", "water_operator", "executive", "super_admin"]),
   department: z.string().optional()
 });
 

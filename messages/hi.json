@@ -7,7 +7,8 @@
     "citizen": "नागरिक",
     "executive": "प्रशासन",
     "admin": "व्यवस्थापक",
-    "queueHealth": "कतार स्थिति"
+    "queueHealth": "कतार स्थिति",
+    "environment": "Environment"
   },
   "common": {
     "loading": "लोड हो रहा है",
@@ -377,5 +378,17 @@
     "liveAiGenerated": "लाइव • एआई जनित",
     "generatingNext": "जनरेट किया जा रहा है",
     "aiAnalyticsActive": "एआई एनालिटिक्स सक्रिय"
+  },
+  "environment": {
+    "environmentCommand": "Environment Command",
+    "activeAlerts": "Active Alerts",
+    "criticalLevels": "Critical Levels",
+    "highestAqi": "Highest AQI",
+    "sensorsOnline": "Sensors Online",
+    "alerts": "Alerts & Status",
+    "normal": "All conditions normal",
+    "aqi": "AQI",
+    "status": "Status",
+    "sensorDetails": "Select a sensor on the map to view details."
   }
 }

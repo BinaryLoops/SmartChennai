@@ -63,32 +63,23 @@ export async function GET() {
         }),
 
         // Last 1 hour of traffic readings for congestion chart
-        prisma.trafficReading.findMany({
-          where: { timestamp: { gte: oneHourAgo } },
-          select: {
-            congestionLevel: true,
-            timestamp: true,
-          },
-          orderBy: { timestamp: "asc" },
-        }),
+        // Aggregated directly in Postgres for extreme performance
+        prisma.$queryRaw`
+          SELECT 
+            date_trunc('minute', timestamp) as "timestamp", 
+            AVG("congestionLevel") as "avgCongestion"
+          FROM "TrafficReading"
+          WHERE timestamp >= ${oneHourAgo}
+          GROUP BY date_trunc('minute', timestamp)
+          ORDER BY "timestamp" ASC
+        `,
       ]);
 
-    // Aggregate traffic history into per-minute average congestion
-    const minuteBuckets = new Map<string, { sum: number; count: number }>();
-    for (const r of trafficHistory) {
-      const minuteKey = r.timestamp.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
-      const bucket = minuteBuckets.get(minuteKey) || { sum: 0, count: 0 };
-      bucket.sum += r.congestionLevel;
-      bucket.count += 1;
-      minuteBuckets.set(minuteKey, bucket);
-    }
-
-    const congestionHistory = Array.from(minuteBuckets.entries()).map(
-      ([timestamp, { sum, count }]) => ({
-        timestamp,
-        avgCongestion: Math.round((sum / count) * 100),
-      })
-    );
+    // Format pre-aggregated SQL results
+    const congestionHistory = (trafficHistory as any[]).map(row => ({
+      timestamp: new Date(row.timestamp).toISOString().slice(0, 16),
+      avgCongestion: Math.round(row.avgCongestion * 100)
+    }));
 
     // Format junctions with their latest reading
     const junctionsWithTraffic = junctions.map((j) => {

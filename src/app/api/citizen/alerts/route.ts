@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -26,7 +27,6 @@ export async function GET() {
         source: true,
         reportedBy: true,
         reportedAt: true,
-        // Intentionally omit: description, priorityScore, referenceId, unitId
       },
     });
 
@@ -37,7 +37,6 @@ export async function GET() {
       },
     });
 
-    // Filter to sensors with latest reading > watch threshold (80cm)
     const floodAlerts = waterSensors
       .filter((s) => s.waterLevel >= 80)
       .map((s) => ({

@@ -154,7 +154,7 @@ async function processIncidentJob(
       lng,
       severity,
       source,
-      status: "reported",
+      status: "reported" as import("@prisma/client").IncidentStatus,
       reportedBy: 1,
       description,
       priorityScore: mcda.score,

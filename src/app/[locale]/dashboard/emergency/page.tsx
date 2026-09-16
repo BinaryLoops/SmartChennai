@@ -121,10 +121,15 @@ export default function EmergencyDashboard() {
   const handleDispatch = async (incidentId: string) => {
     if (isReadOnly) return;
     try {
+      const bestUnit = units.find((u) => u.isAvailable);
+      if (!bestUnit) {
+        alert(t("noUnitsAvailable"));
+        return;
+      }
       const res = await fetch("/api/dashboard/emergency/dispatch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ incidentId }),
+        body: JSON.stringify({ incidentId, action: "DISPATCH", unitId: bestUnit.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -245,7 +250,7 @@ export default function EmergencyDashboard() {
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             <AnimatePresence mode="popLayout">
-              {activeTab === "active" && sortedIncidents.map((inc) => {
+              {activeTab === "active" && sortedIncidents.slice(0, 15).map((inc) => {
                 const isDispatched = inc.status === "dispatched";
                 const isSelected = selectedId === inc.id;
                 const eta = etas[inc.id];
@@ -259,7 +264,7 @@ export default function EmergencyDashboard() {
                     exit={{ opacity: 0, height: 0 }}
                     onClick={() => setSelectedId(inc.id)}
                     className={`cursor-pointer rounded-lg border p-4 transition-colors ${
-                      isSelected ? "border-accent-cyan bg-base-card shadow-md" : "border-border bg-base"
+                      isDispatched ? "border-accent-amber bg-accent-amber/10 shadow-md" : isSelected ? "border-accent-cyan bg-base-card shadow-md" : "border-border bg-base"
                     }`}
                   >
                     <div className="flex justify-between">
@@ -319,7 +324,7 @@ export default function EmergencyDashboard() {
                   <motion.div
                     key={inc.id}
                     layout
-                    className="rounded-lg border border-border bg-base p-4"
+                    className="rounded-lg border border-accent-green bg-accent-green/5 shadow-sm p-4"
                   >
                     <div className="flex justify-between mb-2">
                       <h4 className="font-semibold text-text-primary line-through opacity-75">

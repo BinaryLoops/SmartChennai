@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 const updateUserSchema = z.object({
-  role: z.enum(["citizen", "operator", "dept_head", "dm", "super_admin"]).optional(),
+  role: z.enum(["citizen", "traffic_operator", "emergency_operator", "water_operator", "executive", "super_admin"]).optional(),
   isActive: z.boolean().optional()
 });
 

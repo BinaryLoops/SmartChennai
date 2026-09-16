@@ -4,10 +4,15 @@
     "traffic": "Traffic",
     "emergency": "Emergency",
     "water": "Water",
+    "environment": "Environment",
+    "assets": "City Assets",
     "citizen": "Citizen",
     "executive": "Executive",
     "admin": "Admin",
-    "queueHealth": "Queue Health"
+    "queueHealth": "Queue Health",
+    "simulation": "Simulation",
+    "waste": "Waste Ops",
+    "energy": "Energy Grid"
   },
   "common": {
     "loading": "Loading",
@@ -38,7 +43,13 @@
     "realTimeData": "Real-time Data",
     "unifiedOps": "Unified Operations",
     "citizenCentric": "Citizen Centric",
-    "smarterChennaiBrighterTomorrow": "A SMARTER CHENNAI FOR A BRIGHTER TOMORROW"
+    "smarterChennaiBrighterTomorrow": "A SMARTER CHENNAI FOR A BRIGHTER TOMORROW",
+    "kathipara": "Kathipara",
+    "guindy": "Guindy",
+    "annaSalai": "Anna Salai",
+    "tNagar": "T. Nagar",
+    "marina": "Marina",
+    "annasalai": "Anna Salai"
   },
   "kpi": {
     "avgCongestion": "Avg congestion",
@@ -376,5 +387,40 @@
     "liveAiGenerated": "LIVE • AI GENERATED",
     "generatingNext": "GENERATING",
     "aiAnalyticsActive": "AI ANALYTICS ACTIVE"
+  },
+  "assets": {
+    "pageTitle": "City Asset Registry",
+    "pageSubtitle": "Universal digital twin — every city asset, one operational view",
+    "kpiTotal": "Total Assets",
+    "kpiHealthy": "Healthy",
+    "kpiDegraded": "Degraded",
+    "kpiOffline": "Offline",
+    "kpiMaintenance": "Maintenance",
+    "searchPlaceholder": "Search by name or code...",
+    "filterAllStatus": "All Status",
+    "filterAllZones": "All Zones",
+    "assetsFound": "assets",
+    "noAssetsFound": "No assets match the current filters.",
+    "showingPage": "Page {page} of {pages} — {total} total",
+    "detail": {
+      "identity": "Identity",
+      "location": "Location",
+      "freshness": "Freshness",
+      "liveData": "Live Telemetry",
+      "relatedIncidents": "Nearby Active Incidents",
+      "noIncidents": "No active incidents near this asset"
+    }
+  },
+  "environment": {
+    "environmentCommand": "Environment Command",
+    "activeAlerts": "Active Alerts",
+    "criticalLevels": "Critical Levels",
+    "highestAqi": "Highest AQI",
+    "sensorsOnline": "Sensors Online",
+    "alerts": "Alerts & Status",
+    "normal": "All conditions normal",
+    "aqi": "AQI",
+    "status": "Status",
+    "sensorDetails": "Select a sensor on the map to view details."
   }
 }

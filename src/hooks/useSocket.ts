@@ -8,6 +8,10 @@ import type {
   IncidentPayload,
   ServerToClientEvents,
   ClientToServerEvents,
+  CityEventPayload,
+  CityHealthPayload,
+  TelemetryReading,
+  ScenarioStatePayload,
 } from "@packages/types";
 import { SOCKET_EVENTS } from "@packages/types";
 
@@ -26,6 +30,15 @@ export interface SocketState {
   avgCongestion: number;
   activeIncidents: number;
   floodAlerts: number;
+
+  // STAR ADD-ON #2
+  cityEvents: CityEventPayload[];
+  cityHealth: CityHealthPayload | null;
+  telemetry: Map<string, TelemetryReading>;
+
+  // STAR ADD-ON #3
+  scenarioState: ScenarioStatePayload | null;
+
   emit: (event: string, payload: any, ack?: (res: any) => void) => void;
 }
 
@@ -47,6 +60,14 @@ let globalState = {
   avgCongestion: 0,
   activeIncidents: 0,
   floodAlerts: 0,
+
+  // STAR ADD-ON #2
+  cityEvents: [] as CityEventPayload[],
+  cityHealth: null as CityHealthPayload | null,
+  telemetry: new Map<string, TelemetryReading>(),
+
+  // STAR ADD-ON #3
+  scenarioState: null as ScenarioStatePayload | null,
 };
 
 function notifySubscribers() {
@@ -142,6 +163,45 @@ function initSocket() {
       incidents: updatedIncidents,
       latestIncident: payload,
       activeIncidents: updatedIncidents.filter((i) => i.status === "reported").length,
+    };
+    notifySubscribers();
+  });
+
+  // STAR ADD-ON #2
+  globalSocket.on(SOCKET_EVENTS.cityEventNew, (payload: CityEventPayload) => {
+    const updatedEvents = [payload, ...globalState.cityEvents].slice(0, 50);
+    globalState = {
+      ...globalState,
+      cityEvents: updatedEvents,
+    };
+    notifySubscribers();
+  });
+
+  globalSocket.on(SOCKET_EVENTS.cityHealthUpdate, (payload: CityHealthPayload) => {
+    globalState = {
+      ...globalState,
+      cityHealth: payload,
+    };
+    notifySubscribers();
+  });
+
+  globalSocket.on(SOCKET_EVENTS.telemetryUpdate, (payloads: TelemetryReading[]) => {
+    const newTelemetry = new Map(globalState.telemetry);
+    for (const p of payloads) {
+      newTelemetry.set(`${p.assetId}_${p.metric}`, p);
+    }
+    globalState = {
+      ...globalState,
+      telemetry: newTelemetry,
+    };
+    notifySubscribers();
+  });
+
+  // STAR ADD-ON #3
+  globalSocket.on(SOCKET_EVENTS.scenarioStateUpdate, (payload: ScenarioStatePayload) => {
+    globalState = {
+      ...globalState,
+      scenarioState: payload,
     };
     notifySubscribers();
   });
