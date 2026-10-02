@@ -5,10 +5,22 @@
     "emergency": "आपातकाल",
     "water": "जल",
     "citizen": "नागरिक",
+    "assets": "शहर की संपत्तियां",
+    "simulation": "सिमुलेशन",
+    "predictions": "भविष्यवाणी बुद्धिमत्ता",
+    "queueHealth": "कतार स्वास्थ्य",
+    "environment": "Environment",
+    "citizenServices": "नागरिक सेवाएं",
+    "publicWorks": "लोक निर्माण",
+    "simulation": "सिमुलेशन",
+    "predictions": "भविष्यवाणी बुद्धिमत्ता",
+    "waste": "अपशिष्ट प्रबंधन",
+    "energy": "ऊर्जा",
+    "transit": "सार्वजनिक परिवहन",
+    "healthcare": "स्वास्थ्य सेवा",
+    "disaster": "आपदा प्रबंधन",
     "executive": "प्रशासन",
-    "admin": "व्यवस्थापक",
-    "queueHealth": "कतार स्थिति",
-    "environment": "Environment"
+    "admin": "व्यवस्थापक"
   },
   "common": {
     "loading": "लोड हो रहा है",
@@ -81,6 +93,16 @@
       "fire": "आग",
       "medical": "चिकित्सा आपातकाल",
       "flood": "बाढ़"
+    },
+    "publicWorks": {
+      "title": "Public Works & Infrastructure",
+      "subtitle": "Live status of projects, work orders, and maintenance crews",
+      "openWorkOrders": "Open Work Orders",
+      "activeCrews": "Active Crews",
+      "projectsInProgress": "Projects In Progress",
+      "slaRisk": "SLA Risk",
+      "priorityQueue": "Priority Work Order Queue",
+      "projectPortfolio": "Infrastructure Project Portfolio"
     }
   },
   "traffic": {
@@ -163,7 +185,8 @@
       "track": "ट्रैक",
       "alerts": "चेतावनियाँ",
       "backToDashboard": "ऑपरेटर डैशबोर्ड",
-      "brand": "स्मार्ट चेन्नई"
+      "brand": "स्मार्ट चेन्नई",
+      "myReports": "मेरी शिकायतें"
     },
     "home": {
       "title": "स्मार्ट चेन्नई नागरिक पोर्टल",
@@ -268,6 +291,21 @@
       "timeAgo": "{time} पहले",
       "autoScroll": "स्वतः स्क्रॉल",
       "soundAlerts": "ध्वनि अलर्ट"
+    },
+    "services": {
+      "myReports": "मेरी शिकायतें",
+      "newReport": "समस्या रिपोर्ट करें",
+      "allReports": "सभी शिकायतें",
+      "submittedAt": "दर्ज किया",
+      "status": "स्थिति",
+      "sla": "SLA",
+      "category": "श्रेणी",
+      "department": "विभाग",
+      "linkedAsset": "संबद्ध संपत्ति",
+      "workOrder": "कार्य आदेश",
+      "noReports": "कोई शिकायत नहीं",
+      "reportAnother": "और रिपोर्ट करें",
+      "nearbyDuplicate": "पास में समान समस्या पहले से दर्ज है"
     }
   },
   "executive": {
@@ -377,7 +415,10 @@
     "aiDisclosure": "प्रदर्शन उद्देश्यों के लिए एआई-जनित सीसीटीवी सिमुलेशन",
     "liveAiGenerated": "लाइव • एआई जनित",
     "generatingNext": "जनरेट किया जा रहा है",
-    "aiAnalyticsActive": "एआई एनालिटिक्स सक्रिय"
+    "aiAnalyticsActive": "एआई एनालिटिक्स सक्रिय",
+    "simulatedCCTV": "सिम्युलेटेड सीसीटीवी",
+    "simulatedTelemetry": "लाइव डेमो • सिम्युलेटेड टेलीमेट्री",
+    "videoUnavailable": "वीडियो अनुपलब्ध"
   },
   "environment": {
     "environmentCommand": "Environment Command",

@@ -9,6 +9,7 @@ import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 const navItems = [
   { key: "home", href: "/citizen", icon: "🏠" },
   { key: "report", href: "/citizen/report", icon: "📝" },
+  { key: "myReports", href: "/citizen/reports", icon: "📋" },
   { key: "track", href: "/citizen/track", icon: "🔍" },
   { key: "alerts", href: "/citizen/alerts", icon: "🔔" },
 ] as const;

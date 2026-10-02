@@ -8,7 +8,17 @@
     "executive": "நிர்வாகம்",
     "admin": "நிர்வாகி",
     "queueHealth": "வரிசை நிலை",
-    "environment": "Environment"
+    "environment": "Environment",
+    "citizenServices": "குடிமக்கள் சேவைகள்",
+    "publicWorks": "பொது நிர்மாண திணைக்களம்",
+    "simulation": "உருவகப்படுத்துதல்",
+    "predictions": "கணிப்பு நுண்ணறிவு",
+    "waste": "கழிவு மேலாண்மை",
+    "energy": "ஆற்றல்",
+    "transit": "பொது போக்குவரத்து",
+    "healthcare": "சுகாதாரம்",
+    "disaster": "பேரிடர்",
+    "assets": "நகர சொத்துக்கள்"
   },
   "common": {
     "loading": "ஏற்றுகிறது",
@@ -81,6 +91,16 @@
       "fire": "தீ",
       "medical": "மருத்துவ அவசரம்",
       "flood": "வெள்ளம்"
+    },
+    "publicWorks": {
+      "title": "Public Works & Infrastructure",
+      "subtitle": "Live status of projects, work orders, and maintenance crews",
+      "openWorkOrders": "Open Work Orders",
+      "activeCrews": "Active Crews",
+      "projectsInProgress": "Projects In Progress",
+      "slaRisk": "SLA Risk",
+      "priorityQueue": "Priority Work Order Queue",
+      "projectPortfolio": "Infrastructure Project Portfolio"
     }
   },
   "traffic": {
@@ -163,7 +183,8 @@
       "track": "கண்காணி",
       "alerts": "எச்சரிக்கைகள்",
       "backToDashboard": "ஆபரேட்டர் டாஷ்போர்டு",
-      "brand": "ஸ்மார்ட் சென்னை"
+      "brand": "ஸ்மார்ட் சென்னை",
+      "myReports": "என் புகார்கள்"
     },
     "home": {
       "title": "ஸ்மார்ட் சென்னை குடிமக்கள் போர்டல்",
@@ -268,6 +289,21 @@
       "timeAgo": "{time} முன்",
       "autoScroll": "தானியங்கு உருள்",
       "soundAlerts": "ஒலி எச்சரிக்கைகள்"
+    },
+    "services": {
+      "myReports": "என் புகார்கள்",
+      "newReport": "பிரச்சனை தெரிவிக்கவும்",
+      "allReports": "அனைத்து புகார்கள்",
+      "submittedAt": "சமர்பிக்கப்பட்டது",
+      "status": "நிலை",
+      "sla": "SLA",
+      "category": "வகை",
+      "department": "துறை",
+      "linkedAsset": "இணைக்கப்பட்ட சொத்து",
+      "workOrder": "பணி உத்தரவு",
+      "noReports": "புகார்கள் இல்லை",
+      "reportAnother": "வேறு புகார் அளிக்கவும்",
+      "nearbyDuplicate": "அருகில் ஒரே மாதிரி புகார் ஏற்கனவே உள்ளது"
     }
   },
   "executive": {
@@ -350,7 +386,6 @@
     "live": "நேரலை",
     "simulation": "உருவகப்படுத்துதல் / டெமோ",
     "camera": "கேமரா",
-    "junction": "சந்திப்பு",
     "zone": "மண்டலம்",
     "vehicleCount": "வாகன எண்ணிக்கை",
     "congestion": "நெரிசல்",
@@ -377,7 +412,10 @@
     "aiDisclosure": "விளக்கக்காட்சி நோக்கங்களுக்கான ஏஐ-உருவாக்கப்பட்ட சிசிடிவி உருவகப்படுத்துதல்",
     "liveAiGenerated": "நேரலை • ஏஐ உருவாக்கப்பட்டது",
     "generatingNext": "உருவாக்கப்படுகிறது",
-    "aiAnalyticsActive": "ஏஐ பகுப்பாய்வு செயலில் உள்ளது"
+    "aiAnalyticsActive": "ஏஐ பகுப்பாய்வு செயலில் உள்ளது",
+    "simulatedCCTV": "உருவகப்படுத்தப்பட்ட சிசிடிவி",
+    "simulatedTelemetry": "நேரலை டெமோ • உருவகப்படுத்தப்பட்ட தரவுகள்",
+    "videoUnavailable": "வீடியோ கிடைக்கவில்லை"
   },
   "environment": {
     "environmentCommand": "Environment Command",

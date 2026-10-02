@@ -1,5 +1,10 @@
 import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { seedEnergy } from "./seed_energy";
+import { seedTransit } from "./seed_transit";
+import { seedHealthcare } from "./seed_healthcare";
+import { seedPublicWorks } from "./seed_public_works";
+import { seedCitizenServices } from "./seed_citizen_services";
 
 const prisma = new PrismaClient();
 
@@ -351,7 +356,13 @@ async function main() {
     }
   }
 
-  console.log("Seed complete.");
+  await seedEnergy(prisma, zones);
+  await seedTransit(prisma);
+  await seedHealthcare(prisma, zones);
+  await seedPublicWorks(prisma);
+  await seedCitizenServices();
+
+  console.log("Seeding complete!");
 }
 
 main()

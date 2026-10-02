@@ -3,7 +3,11 @@ import { useEffect, useState } from "react";
 import { ChevronUp, ChevronDown, Activity, AlertTriangle, Droplets, Car } from "lucide-react";
 import { io } from "socket.io-client";
 
-export function LiveEventStream() {
+interface Props {
+  filterType?: string;
+}
+
+export function LiveEventStream({ filterType }: Props = {}) {
   const [collapsed, setCollapsed] = useState(false);
   const [events, setEvents] = useState<any[]>([]);
 
@@ -12,12 +16,16 @@ export function LiveEventStream() {
     fetch('/api/dashboard/events')
       .then(r => r.json())
       .then(data => {
-        if(data.events) setEvents(data.events);
+        if(data.events) {
+          const evs = filterType ? data.events.filter((e: any) => e.type === filterType) : data.events;
+          setEvents(evs);
+        }
       })
       .catch(e => console.error("Event fetch error", e));
 
     const socket = io("http://localhost:4001");
     socket.on("cityEvent:new", (ev: any) => {
+      if (filterType && ev.type !== filterType) return;
       setEvents(prev => [ev, ...prev].slice(0, 50)); // Keep last 50
     });
     return () => { socket.disconnect(); };
@@ -28,7 +36,8 @@ export function LiveEventStream() {
       case 'TRAFFIC': return <Car size={14} className="text-amber-400" />;
       case 'WATER': return <Droplets size={14} className="text-blue-400" />;
       case 'ENVIRONMENT': return <Activity size={14} className="text-emerald-400" />;
-      default: return <AlertTriangle size={14} className="text-red-400" />;
+      case 'TRANSIT': return <Car size={14} className="text-indigo-400" />;
+      default: return <AlertTriangle size={14} className="text-gray-400" />;
     }
   };
 

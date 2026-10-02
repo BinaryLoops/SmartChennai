@@ -19,12 +19,20 @@ import { createRedisClient } from "../src/lib/redis";
 import { environmentGenerator } from "./telemetry/environment";
 import { wasteGenerator } from "./telemetry/waste";
 import { energyGenerator } from "./telemetry/energy";
+import { transitGenerator } from "./telemetry/transit";
+import { healthcareGenerator } from "./telemetry/healthcare";
+import { disasterGenerator } from "./telemetry/disaster";
+import { publicWorksGenerator } from "./telemetry/publicWorks";
+import { citizenServicesGenerator } from "./telemetry/citizenServices";
 import { TelemetryContext } from "./telemetry/types";
 import { CityHealthPayload } from "../packages/types";
 import { emitEventTransition } from "./event_fabric";
 
 // STAR ADD-ON #3
 import { ScenarioEngine } from "./scenarios/engine";
+
+// STAR ADD-ON #11
+import { PredictionEngine } from "./predictions/engine";
 
 import {
   SOCKET_EVENTS,
@@ -38,6 +46,9 @@ import {
 } from "../packages/types";
 
 const prisma = new PrismaClient();
+
+const lastEmittedTraffic = new Map<string, TrafficUpdatePayload>();
+const lastEmittedWater = new Map<string, WaterUpdatePayload>();
 
 const DEFAULT_TICK_MS = 5_000;
 const DEMO_TICK_MS = 1_000;
@@ -404,6 +415,7 @@ async function main() {
   });
 
   const scenarioEngine = new ScenarioEngine(prisma, io as any);
+  const predictionEngine = new PredictionEngine(prisma, io as any);
 
   io.on("connection", (socket) => {
     console.log(`[worker] client connected (${io.engine.clientsCount} online)`);
@@ -466,8 +478,32 @@ async function main() {
       const causalMods = scenarioEngine.getModifiers();
 
       const { traffic, water } = await tick(junctions, sensors, hour, causalMods, io as any);
-      for (const payload of traffic) io.emit(SOCKET_EVENTS.trafficUpdate, payload);
-      for (const payload of water) io.emit(SOCKET_EVENTS.waterUpdate, payload);
+      
+      const trafficBatch: TrafficUpdatePayload[] = [];
+      for (const payload of traffic) {
+        const last = lastEmittedTraffic.get(payload.junctionId);
+        // Only emit if congestion changes by > 2% or spiked changes
+        if (!last || last.spiked !== payload.spiked || Math.abs(last.congestionLevel - payload.congestionLevel) > 0.02) {
+          trafficBatch.push(payload);
+          lastEmittedTraffic.set(payload.junctionId, payload);
+        }
+      }
+      if (trafficBatch.length > 0) {
+        io.emit(SOCKET_EVENTS.trafficUpdate, trafficBatch);
+      }
+
+      const waterBatch: WaterUpdatePayload[] = [];
+      for (const payload of water) {
+        const last = lastEmittedWater.get(payload.sensorId);
+        // Only emit if water level changes by > 0.5cm or risk level changes
+        if (!last || last.riskLevel !== payload.riskLevel || Math.abs(last.waterLevelCm - payload.waterLevelCm) > 0.5) {
+          waterBatch.push(payload);
+          lastEmittedWater.set(payload.sensorId, payload);
+        }
+      }
+      if (waterBatch.length > 0) {
+        io.emit(SOCKET_EVENTS.waterUpdate, waterBatch);
+      }
       if (settings) await runAdvancedCorrelations(prisma, io, settings, zones);
       // STAR ADD-ON #1 — runs every ~60s inside the existing tick loop
       await runAssetSimulation(prisma);
@@ -489,13 +525,19 @@ async function main() {
           causalMods,
         };
 
-        const [envRes, wasteRes, energyRes] = await Promise.all([
+        const [envRes, wasteRes, energyRes, transitRes, healthRes, disasterRes] = await Promise.all([
           environmentGenerator.runTick(ctx),
           wasteGenerator.runTick(ctx),
-          energyGenerator.runTick(ctx)
+          energyGenerator.runTick(ctx),
+          transitGenerator.runTick(ctx),
+          healthcareGenerator.runTick(ctx),
+          disasterGenerator.runTick(ctx)
         ]);
 
-        const allReadings = [...envRes.readings, ...wasteRes.readings, ...energyRes.readings];
+        await publicWorksGenerator.runTick(ctx, io as any);
+        await citizenServicesGenerator.runTick(ctx, io as any);
+
+        const allReadings = [...envRes.readings, ...wasteRes.readings, ...energyRes.readings, ...transitRes.readings, ...healthRes.readings, ...disasterRes.readings];
         if (allReadings.length > 0) {
           io.emit(SOCKET_EVENTS.telemetryUpdate, allReadings);
         }
@@ -508,13 +550,19 @@ async function main() {
         const envScore = envRes.healthScore ?? 100;
         const wasteScore = wasteRes.healthScore ?? 100;
         const energyScore = energyRes.healthScore ?? 100;
+        const transitScore = transitRes.healthScore ?? 100;
+        const hcScore = healthRes.healthScore ?? 100;
+        const distScore = disasterRes.healthScore ?? 100;
 
         const overallScore = Math.round(
-          (trafficHealth * 0.3) + 
-          (waterHealth * 0.2) + 
-          (envScore * 0.2) + 
-          (wasteScore * 0.15) + 
-          (energyScore * 0.15)
+          (trafficHealth * 0.15) + 
+          (waterHealth * 0.15) + 
+          (envScore * 0.15) + 
+          (wasteScore * 0.1) + 
+          (energyScore * 0.1) +
+          (transitScore * 0.15) +
+          (hcScore * 0.1) +
+          (distScore * 0.1)
         );
 
         const healthPayload: CityHealthPayload = {
@@ -525,6 +573,9 @@ async function main() {
             environment: envScore,
             waste: wasteScore,
             energy: energyScore,
+            transit: transitScore,
+            healthcare: hcScore,
+            disaster: distScore,
             cctv: 100, // Placeholder for future add-on
             emergency: 100 // Placeholder for future add-on
           },
@@ -537,6 +588,13 @@ async function main() {
         console.error("[worker] additive telemetry phase failed (isolated):", err);
       }
 
+      // --------------------------------------------------------
+      // STAR ADD-ON #11: Predictive City Intelligence Phase
+      try {
+        await predictionEngine.checkAndRun(Date.now(), scenarioEngine.getState().activeScenarioId, causalMods);
+      } catch (err) {
+        console.error("[worker] predictive intelligence phase failed (isolated):", err);
+      }
       // --------------------------------------------------------
 
     } catch (err) {

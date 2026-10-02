@@ -1,0 +1,97 @@
+model TransitRoute {
+  id                   String             @id @default(cuid())
+  routeCode            String             @unique
+  name                 String
+  origin               String
+  destination          String
+  status               String             @default("ACTIVE")
+  distanceKm           Float              @default(0)
+  estimatedDurationMin Int                @default(0)
+  polyline             String?            // Encoded polyline or JSON string for map
+  activeVehicles       Int                @default(0)
+  scheduledFrequency   Int                @default(15) // minutes
+  currentDemand        String             @default("NORMAL")
+  stops                TransitRouteStop[]
+  trips                TransitTrip[]
+  vehicles             TransitVehicle[]
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+}
+
+model TransitStop {
+  id                       String             @id @default(cuid())
+  stopCode                 String             @unique
+  name                     String
+  lat                      Float
+  lng                      Float
+  zoneId                   String?
+  shelterStatus            String             @default("NORMAL")
+  accessibilityStatus      String             @default("ACCESSIBLE")
+  passengerDemand          Float              @default(0)
+  currentWaitingPassengers Int                @default(0)
+  status                   String             @default("ACTIVE")
+  routeStops               TransitRouteStop[]
+  zone                     Zone?              @relation(fields: [zoneId], references: [id])
+  updatedAt                DateTime           @updatedAt
+
+  @@index([zoneId])
+}
+
+model TransitRouteStop {
+  id                String       @id @default(cuid())
+  routeId           String
+  stopId            String
+  stopIndex         Int
+  distanceFromStart Float      @default(0)
+  route             TransitRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  stop              TransitStop  @relation(fields: [stopId], references: [id], onDelete: Cascade)
+
+  @@unique([routeId, stopIndex])
+  @@index([routeId])
+  @@index([stopId])
+}
+
+model TransitTrip {
+  id               String          @id @default(cuid())
+  routeId          String
+  vehicleId        String?
+  tripCode         String
+  direction        String          @default("OUTBOUND")
+  scheduledStart   DateTime?
+  scheduledEnd     DateTime?
+  actualStart      DateTime?
+  actualEnd        DateTime?
+  status           String          @default("SCHEDULED")
+  delayMinutes     Int             @default(0)
+  currentStopIndex Int             @default(0)
+  route            TransitRoute    @relation(fields: [routeId], references: [id])
+  vehicle          TransitVehicle? @relation(fields: [vehicleId], references: [id])
+  
+  @@index([routeId])
+  @@index([vehicleId])
+}
+
+model TransitVehicle {
+  id             String        @id @default(cuid())
+  vehicleCode    String        @unique
+  vehicleType    String        @default("BUS")
+  status         String        @default("IN_SERVICE")
+  routeId        String?
+  lat            Float
+  lng            Float
+  heading        Float         @default(0)
+  speed          Float         @default(0)
+  occupancy      Int           @default(0)
+  capacity       Int           @default(60)
+  currentStopId  String?
+  nextStopId     String?
+  delayMinutes   Int           @default(0)
+  lastSeen       DateTime      @default(now())
+  healthStatus   String        @default("HEALTHY")
+  route          TransitRoute? @relation(fields: [routeId], references: [id])
+  trips          TransitTrip[]
+  updatedAt      DateTime      @updatedAt
+
+  @@index([routeId])
+}
+

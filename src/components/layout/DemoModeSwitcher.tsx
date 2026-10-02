@@ -7,8 +7,10 @@ export function DemoModeSwitcher() {
   const { emit, connected: isConnected } = useSocket();
   const [demoMode, setDemoMode] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     // Initial fetch from DB config
     fetch("/api/admin/config")
       .then(res => res.json())
@@ -33,8 +35,16 @@ export function DemoModeSwitcher() {
 
   return (
     <div className="flex items-center gap-2 print:hidden">
-      <button
-        onClick={toggleDemoMode}
+      {!mounted ? (
+        <button
+          disabled
+          className="px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wide border bg-base text-text-muted border-border opacity-50 cursor-not-allowed"
+        >
+          Demo Mode
+        </button>
+      ) : (
+        <button
+          onClick={toggleDemoMode}
         disabled={loading || !isConnected}
         className={`px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wide border transition-all ${
           demoMode 
@@ -43,7 +53,8 @@ export function DemoModeSwitcher() {
         } ${(!isConnected || loading) ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         {demoMode ? "Demo Live" : "Demo Mode"}
-      </button>
+        </button>
+      )}
     </div>
   );
 }

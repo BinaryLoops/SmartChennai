@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
-import { ContinuousAIPlayer } from "./ContinuousAIPlayer";
+import { CCTVVideoPreview } from "./CCTVVideoPreview";
 import { CCTVFullscreenModal } from "./CCTVFullscreenModal";
 import type { TrafficUpdatePayload, IncidentPayload } from "@packages/types";
 
@@ -129,7 +129,7 @@ export function CCTVGrid({
               className="group rounded-xl border border-border bg-base-card overflow-hidden shadow-lg hover:border-accent-cyan/30 transition-colors"
             >
               {/* Camera Feed */}
-              <ContinuousAIPlayer
+              <CCTVVideoPreview
                 cameraId={cam.id}
                 junctionName={cam.junctionName}
                 zoneName={cam.zoneName || ""}
@@ -139,7 +139,7 @@ export function CCTVGrid({
                 incident={incident ? { type: incident.type, severity: incident.severity } : null}
                 className="aspect-video w-full"
                 onClick={() => setSelectedCamera(cam)}
-                enabled={cam.status === "online" && ["CAM-KTP-01", "CAM-TYN-03", "CAM-MAR-02", "CAM-AMB-04"].includes(cam.id)}
+                enabled={cam.status === "online"}
               />
 
               {/* Camera Info Bar */}

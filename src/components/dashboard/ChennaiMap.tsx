@@ -42,6 +42,26 @@ const EnergyMarkers = dynamic(
   () => import("./EnergyMarkers").then((m) => m.EnergyMarkers),
   { ssr: false }
 );
+const TransitOverlay = dynamic(
+  () => import("./TransitOverlay").then((m) => m.TransitOverlay),
+  { ssr: false }
+);
+const HealthcareOverlay = dynamic(
+  () => import("../map/HealthcareOverlay").then((m) => m.default),
+  { ssr: false }
+);
+const DisasterOverlay = dynamic(
+  () => import("../map/DisasterOverlay").then((m) => m.default),
+  { ssr: false }
+);
+const PublicWorksOverlay = dynamic(
+  () => import("../map/PublicWorksOverlay").then((m) => m.PublicWorksOverlay),
+  { ssr: false }
+);
+const PredictiveRiskOverlay = dynamic(
+  () => import("./PredictiveRiskOverlay").then((m) => m.PredictiveRiskOverlay),
+  { ssr: false }
+);
 
 export interface ZoneData {
   id: string;
@@ -151,6 +171,36 @@ export function ChennaiMap({
           <LayersControl.Overlay name="Energy Infrastructure" checked>
             <div>
               <EnergyMarkers />
+            </div>
+          </LayersControl.Overlay>
+
+          <LayersControl.Overlay name="Public Transit" checked>
+            <div>
+              <TransitOverlay />
+            </div>
+          </LayersControl.Overlay>
+
+          <LayersControl.Overlay name="Healthcare & Emergency" checked>
+            <div>
+              <HealthcareOverlay />
+            </div>
+          </LayersControl.Overlay>
+
+          <LayersControl.Overlay name="Disaster & Scenario Response" checked>
+            <div>
+              <DisasterOverlay zones={zones} />
+            </div>
+          </LayersControl.Overlay>
+
+          <LayersControl.Overlay name="Public Works & Assets" checked>
+            <div>
+              <PublicWorksOverlay />
+            </div>
+          </LayersControl.Overlay>
+
+          <LayersControl.Overlay name="Predictive Intelligence" checked={false}>
+            <div>
+              <PredictiveRiskOverlay zones={zones} />
             </div>
           </LayersControl.Overlay>
         </LayersControl>

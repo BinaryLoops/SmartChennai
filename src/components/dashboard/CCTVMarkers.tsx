@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Marker, Tooltip } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import type { CameraData } from "./ChennaiMap";
 import CCTVModal from "./CCTVModal";
 import { createSemanticIcon, StatusColor } from "../map/MapIcons";
@@ -20,7 +21,8 @@ export function CCTVMarkers({ cameras }: CCTVMarkersProps) {
 
   return (
     <>
-      {cameras.map((cam) => {
+      <MarkerClusterGroup chunkedLoading maxClusterRadius={40} disableClusteringAtZoom={15}>
+        {cameras.map((cam) => {
         const isOnline = cam.status === "online";
         const status: StatusColor = isOnline ? "HEALTHY" : "OFFLINE";
         const color = isOnline ? "#22C55E" : "#6B7280";
@@ -52,6 +54,7 @@ export function CCTVMarkers({ cameras }: CCTVMarkersProps) {
           </Marker>
         );
       })}
+      </MarkerClusterGroup>
       {mounted && selectedCamera && (
         <CCTVModal
           camera={selectedCamera}
@@ -62,4 +65,4 @@ export function CCTVMarkers({ cameras }: CCTVMarkersProps) {
   );
 }
 
-export default CCTVMarkers;
+export default React.memo(CCTVMarkers);

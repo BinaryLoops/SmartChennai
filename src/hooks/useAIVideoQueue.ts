@@ -10,7 +10,8 @@ interface UseAIVideoQueueProps {
 
 export function useAIVideoQueue({ cameraId, locationName, isVisible, context }: UseAIVideoQueueProps) {
   const [playingUrl, setPlayingUrl] = useState<string | null>(null);
-  const [readyBuffer, setReadyBuffer] = useState<string[]>([]);
+  const [isMock, setIsMock] = useState<boolean>(false);
+  const [readyBuffer, setReadyBuffer] = useState<{url: string, isMock: boolean}[]>([]);
   const [generatingCount, setGeneratingCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,7 +65,7 @@ export function useAIVideoQueue({ cameraId, locationName, isVisible, context }: 
 
         if (statusData.status === "completed" && statusData.url) {
           activeJobs.current.delete(jobId);
-          setReadyBuffer((prev) => [...prev, statusData.url]);
+          setReadyBuffer((prev) => [...prev, { url: statusData.url, isMock: statusData.isMock || false }]);
           setGeneratingCount((c) => Math.max(0, c - 1));
           return;
         }
@@ -73,16 +74,23 @@ export function useAIVideoQueue({ cameraId, locationName, isVisible, context }: 
       console.error(`[AIVideoQueue] Generation failed for ${cameraId}:`, err);
       setError(err.message);
       setGeneratingCount((c) => Math.max(0, c - 1));
+      
+      // Auto-retry after 5 seconds to prevent pipeline from permanently dying
+      setTimeout(() => {
+        setError(null);
+      }, 5000);
     }
   }, [cameraId, locationName]);
 
   // Manager loop
   useEffect(() => {
     if (!isVisible) return; // Save cost by not generating when not visible
+    if (error) return; // Stop pipeline if a fatal error occurs
 
     // If we have no playing URL but we have a ready buffer, immediately promote
     if (!playingUrl && readyBuffer.length > 0) {
-      setPlayingUrl(readyBuffer[0]);
+      setPlayingUrl(readyBuffer[0].url);
+      setIsMock(readyBuffer[0].isMock);
       setReadyBuffer((prev) => prev.slice(1));
       return;
     }
@@ -94,11 +102,12 @@ export function useAIVideoQueue({ cameraId, locationName, isVisible, context }: 
     if (currentPipelineSize < targetBuffer && generatingCount < 1) { // Max 1 concurrent job per camera
       generateSegment();
     }
-  }, [isVisible, playingUrl, readyBuffer.length, generatingCount, generateSegment]);
+  }, [isVisible, error, playingUrl, readyBuffer.length, generatingCount, generateSegment]);
 
   const playNext = useCallback(() => {
     if (readyBuffer.length > 0) {
-      setPlayingUrl(readyBuffer[0]);
+      setPlayingUrl(readyBuffer[0].url);
+      setIsMock(readyBuffer[0].isMock);
       setReadyBuffer((prev) => prev.slice(1));
     } else {
       setPlayingUrl(null); // Wait for buffer
@@ -107,6 +116,7 @@ export function useAIVideoQueue({ cameraId, locationName, isVisible, context }: 
 
   return {
     playingUrl,
+    isMock,
     readyCount: readyBuffer.length,
     isGenerating: generatingCount > 0,
     error,

@@ -9,7 +9,7 @@ import dynamic from "next/dynamic";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { SignalOverridePanel } from "@/components/traffic/SignalOverridePanel";
 import { TrafficTrendChart } from "@/components/traffic/TrafficTrendChart";
-import { ContinuousAIPlayer } from "@/components/cctv/ContinuousAIPlayer";
+import { CCTVVideoPreview } from "@/components/cctv/CCTVVideoPreview";
 import { CCTVFullscreenModal } from "@/components/cctv/CCTVFullscreenModal";
 
 // Dynamic import for Leaflet map to avoid SSR issues
@@ -220,7 +220,7 @@ export default function JunctionDetailPage({
                 Fullscreen
               </button>
             </div>
-            <ContinuousAIPlayer
+            <CCTVVideoPreview
               cameraId={j.id}
               junctionName={j.name}
               zoneName={j.zone.name}
@@ -249,7 +249,7 @@ export default function JunctionDetailPage({
               }
               className="aspect-video w-full"
               onClick={() => setShowCCTVModal(true)}
-              enabled={["CAM-KTP-01", "CAM-TYN-03", "CAM-MAR-02", "CAM-AMB-04"].includes(j.id)}
+              enabled={true}
             />
           </div>
 

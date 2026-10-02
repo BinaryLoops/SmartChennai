@@ -48,7 +48,7 @@ export function ContinuousAIPlayer({
     return () => observer.disconnect();
   }, []);
 
-  const { playingUrl, readyCount, isGenerating, error, playNext } = useAIVideoQueue({
+  const { playingUrl, isMock, readyCount, isGenerating, error, playNext } = useAIVideoQueue({
     cameraId,
     locationName: junctionName,
     isVisible: isVisible && enabled,
@@ -67,6 +67,7 @@ export function ContinuousAIPlayer({
   // Track previous url to load into the hidden player for crossfading
   const [urlA, setUrlA] = useState<string | null>(null);
   const [urlB, setUrlB] = useState<string | null>(null);
+  const [videoError, setVideoError] = useState<boolean>(false);
 
   useEffect(() => {
     if (!playingUrl) return;
@@ -87,9 +88,14 @@ export function ContinuousAIPlayer({
   }, [playingUrl, activePlayer, urlA, urlB]);
 
   const handleEnded = () => {
+    if (videoError) return;
     // Switch active player
     setActivePlayer((prev) => (prev === "A" ? "B" : "A"));
     playNext();
+  };
+
+  const handleVideoError = () => {
+    setVideoError(true);
   };
 
   const [currentTime, setCurrentTime] = useState("");
@@ -126,28 +132,35 @@ export function ContinuousAIPlayer({
         ref={videoARef}
         src={urlA || undefined}
         onEnded={handleEnded}
+        onError={handleVideoError}
         muted
         playsInline
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-          activePlayer === "A" && playingUrl ? "opacity-100" : "opacity-0"
+          activePlayer === "A" && playingUrl && !videoError ? "opacity-100" : "opacity-0"
         }`}
       />
       <video
         ref={videoBRef}
         src={urlB || undefined}
         onEnded={handleEnded}
+        onError={handleVideoError}
         muted
         playsInline
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-          activePlayer === "B" && playingUrl ? "opacity-100" : "opacity-0"
+          activePlayer === "B" && playingUrl && !videoError ? "opacity-100" : "opacity-0"
         }`}
       />
 
       {/* States: Buffer Empty / Error */}
-      {(!playingUrl || isConfigError) && (
+      {(!playingUrl || isConfigError || videoError) && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
           <div className="text-center flex flex-col items-center gap-2">
-            {isConfigError ? (
+            {videoError ? (
+              <>
+                <span className="text-2xl text-accent-red">⚠</span>
+                <p className="text-xs text-accent-red font-semibold">{t("videoUnavailable", { defaultMessage: "VIDEO UNAVAILABLE" })}</p>
+              </>
+            ) : isConfigError ? (
               <>
                 <span className="text-2xl text-accent-red">⚠</span>
                 <p className="text-xs text-accent-red font-semibold">{t("aiProviderNotConfigured", { defaultMessage: "AI VIDEO PROVIDER NOT CONFIGURED" })}</p>
@@ -206,9 +219,9 @@ export function ContinuousAIPlayer({
           
           {/* Status Indicator */}
           <div className="flex flex-col items-end gap-1">
-            <div className="bg-accent-red/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shadow-[0_0_8px_rgba(239,68,68,0.6)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-              {t("liveAiGenerated", { defaultMessage: "LIVE • AI GENERATED" })}
+            <div className={`text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 ${isMock ? "bg-accent-cyan/90 shadow-[0_0_8px_rgba(34,211,238,0.6)]" : "bg-accent-red/90 shadow-[0_0_8px_rgba(239,68,68,0.6)]"}`}>
+              <span className={`h-1.5 w-1.5 rounded-full bg-white ${isMock ? "" : "animate-pulse"}`} />
+              {isMock ? t("simulatedCCTV", { defaultMessage: "SIMULATED CCTV" }) : t("liveAiGenerated", { defaultMessage: "LIVE • AI GENERATED" })}
             </div>
             {/* Status debug pill */}
             <div className="flex items-center gap-1">
@@ -235,7 +248,9 @@ export function ContinuousAIPlayer({
           {/* Disclosure & Time */}
           <div className="flex flex-col items-end gap-1 text-right">
              <div className="bg-black/40 backdrop-blur-sm rounded px-1.5 py-0.5 max-w-[120px]">
-                <p className="text-[7px] text-text-muted leading-tight">{t("aiDisclosure", { defaultMessage: "AI-GENERATED CCTV SIMULATION FOR DEMONSTRATION PURPOSES" })}</p>
+                <p className="text-[7px] text-text-muted leading-tight">
+                  {isMock ? t("simulatedTelemetry", { defaultMessage: "LIVE DEMO • SIMULATED TELEMETRY" }) : t("aiDisclosure", { defaultMessage: "AI-GENERATED CCTV SIMULATION FOR DEMONSTRATION PURPOSES" })}
+                </p>
              </div>
             <div className="bg-black/60 backdrop-blur-sm rounded px-2 py-1">
               <p className="text-[10px] text-text-muted font-mono">{timeStr}</p>

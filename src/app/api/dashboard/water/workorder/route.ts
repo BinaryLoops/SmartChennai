@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
           source: "sensor",
           status: "in_progress",
           
-          WorkOrder: {
+          WorkOrders: {
             create: {
               assignedTeam: "Metro Water Rapid Response",
               startedAt: new Date(),
@@ -49,8 +49,11 @@ export async function POST(req: NextRequest) {
           status: "resolved",
           resolvedAt: new Date(),
           resolutionNotes: "Drainage cleared and water pumped out.",
-          WorkOrder: {
-            update: { completedAt: new Date() }
+          WorkOrders: {
+            updateMany: { 
+              where: {},
+              data: { status: "COMPLETED" } 
+            }
           }
         }
       });

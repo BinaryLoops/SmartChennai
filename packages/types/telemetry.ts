@@ -36,6 +36,9 @@ export interface CityHealthPayload {
     environment: number;
     waste: number;
     energy: number;
+    transit?: number;
+    healthcare?: number;
+    disaster?: number;
   };
   timestamp: string;
 }

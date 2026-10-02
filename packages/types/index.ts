@@ -17,6 +17,9 @@ export const SOCKET_EVENTS = {
   // STAR ADD-ON #3
   scenarioCommand: "scenario:command",
   scenarioStateUpdate: "scenario:stateUpdate",
+  // STAR ADD-ON #11
+  predictionUpdate: "prediction:update",
+  predictionRisk: "prediction:risk",
 } as const;
 
 export type RiskLevel = "normal" | "watch" | "warning" | "danger";
@@ -73,8 +76,8 @@ export interface SimulationSettingsPayload {
 
 /** Events the server pushes to connected clients. */
 export interface ServerToClientEvents {
-  [SOCKET_EVENTS.trafficUpdate]: (payload: TrafficUpdatePayload) => void;
-  [SOCKET_EVENTS.waterUpdate]: (payload: WaterUpdatePayload) => void;
+  [SOCKET_EVENTS.trafficUpdate]: (payload: TrafficUpdatePayload | TrafficUpdatePayload[]) => void;
+  [SOCKET_EVENTS.waterUpdate]: (payload: WaterUpdatePayload | WaterUpdatePayload[]) => void;
   [SOCKET_EVENTS.incidentNew]: (payload: IncidentPayload) => void;
   [SOCKET_EVENTS.incidentUpdated]: (payload: IncidentPayload) => void;
   // STAR ADD-ON #2
@@ -83,6 +86,9 @@ export interface ServerToClientEvents {
   [SOCKET_EVENTS.cityHealthUpdate]: (payload: any) => void;
   // STAR ADD-ON #3
   [SOCKET_EVENTS.scenarioStateUpdate]: (payload: any) => void;
+  // STAR ADD-ON #11
+  [SOCKET_EVENTS.predictionUpdate]: (payload: any) => void;
+  [SOCKET_EVENTS.predictionRisk]: (payload: any) => void;
 }
 
 /** Events clients may send to the worker. */

@@ -18,6 +18,7 @@ import { prisma } from "@/lib/prisma";
  *   search    string  partial name / assetCode match
  *   sort      string  "name" | "status" | "healthScore" | "updatedAt" (default)
  *   dir       "asc" | "desc" (default "desc")
+ *   bbox      string  "minLng,minLat,maxLng,maxLat"
  */
 export async function GET(req: NextRequest) {
   try {
@@ -32,6 +33,7 @@ export async function GET(req: NextRequest) {
     const zone     = searchParams.get("zone")      || undefined;
     const type     = searchParams.get("type")      || undefined;
     const search   = searchParams.get("search")    || undefined;
+    const bbox     = searchParams.get("bbox")      || undefined;
     const sort     = searchParams.get("sort")      || "updatedAt";
     const dir      = (searchParams.get("dir") === "asc" ? "asc" : "desc") as "asc" | "desc";
 
@@ -46,6 +48,14 @@ export async function GET(req: NextRequest) {
         { name:      { contains: search, mode: "insensitive" } },
         { assetCode: { contains: search, mode: "insensitive" } },
       ];
+    }
+    
+    if (bbox) {
+      const [minLng, minLat, maxLng, maxLat] = bbox.split(",").map(Number);
+      if (!isNaN(minLng) && !isNaN(minLat) && !isNaN(maxLng) && !isNaN(maxLat)) {
+        where.lat = { gte: minLat, lte: maxLat };
+        where.lng = { gte: minLng, lte: maxLng };
+      }
     }
 
     // Valid sort fields
@@ -221,6 +231,28 @@ async function resolveLiveStatuses(assets: AssetRow[]): Promise<AssetRow[]> {
         for (const v of vehicles) {
           const status = v.status === "offline" ? "OFFLINE" : v.status === "delayed" ? "DEGRADED" : "HEALTHY";
           resolved.set(v.id, { status, healthScore: status === "HEALTHY" ? 85 : status === "DEGRADED" ? 50 : 10, lastSeenAt: v.updatedAt });
+        }
+        break;
+      }
+      case "TransitVehicle": {
+        const vehicles = await prisma.transitVehicle.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, status: true, delayMinutes: true, lastSeen: true },
+        });
+        for (const v of vehicles) {
+          const status = (v.status === "OFFLINE" || v.status === "OUT_OF_SERVICE") ? "OFFLINE" : (v.delayMinutes > 15 || v.status === "DELAYED") ? "DEGRADED" : "HEALTHY";
+          resolved.set(v.id, { status, healthScore: status === "HEALTHY" ? 95 : status === "DEGRADED" ? 60 : 10, lastSeenAt: v.lastSeen });
+        }
+        break;
+      }
+      case "TransitStop": {
+        const stops = await prisma.transitStop.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, status: true, shelterStatus: true, updatedAt: true },
+        });
+        for (const s of stops) {
+          const status = s.status === "OFFLINE" ? "OFFLINE" : (s.shelterStatus === "DAMAGED" || s.status === "DEGRADED") ? "DEGRADED" : "HEALTHY";
+          resolved.set(s.id, { status, healthScore: status === "HEALTHY" ? 100 : status === "DEGRADED" ? 50 : 0, lastSeenAt: s.updatedAt });
         }
         break;
       }

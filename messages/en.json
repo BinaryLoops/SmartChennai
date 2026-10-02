@@ -11,8 +11,17 @@
     "admin": "Admin",
     "queueHealth": "Queue Health",
     "simulation": "Simulation",
-    "waste": "Waste Ops",
-    "energy": "Energy Grid"
+    "predictions": "Predictive Intelligence",
+    "waste": "Waste Management",
+    "energy": "Energy Grid",
+    "wasteOperations": "Waste Operations Command",
+    "energyOperations": "Energy Grid Command",
+    "transitOperations": "Public Transit Operations",
+    "transit": "Public Transit",
+    "healthcare": "Healthcare",
+    "disaster": "Disaster Response",
+    "citizenServices": "Citizen Services",
+    "publicWorks": "Public Works"
   },
   "common": {
     "loading": "Loading",
@@ -91,6 +100,31 @@
       "fire": "Fire",
       "medical": "Medical Emergency",
       "flood": "Flood"
+    },
+    "transitOperations": "Public Transit Operations",
+    "publicWorks": {
+      "title": "Public Works & Infrastructure",
+      "subtitle": "Live status of projects, work orders, and maintenance crews",
+      "openWorkOrders": "Open Work Orders",
+      "activeCrews": "Active Crews",
+      "projectsInProgress": "Projects In Progress",
+      "slaRisk": "SLA Risk",
+      "priorityQueue": "Priority Work Order Queue",
+      "projectPortfolio": "Infrastructure Project Portfolio"
+    },
+    "citizenServices": {
+      "title": "Citizen Services Command",
+      "requestsToday": "Today",
+      "openRequests": "Open",
+      "slaAtRisk": "SLA At Risk",
+      "slaBreached": "SLA Breached",
+      "resolved": "Resolved (7d)",
+      "avgResolution": "Avg Resolution",
+      "satisfaction": "Satisfaction",
+      "priorityQueue": "Priority Queue",
+      "byCategory": "By Category",
+      "byZone": "Top Zones",
+      "hotspots": "Hotspots"
     }
   },
   "traffic": {
@@ -165,6 +199,20 @@
     "floodIncident": "Flood Detected",
     "aiPrediction": "AI Risk Prediction"
   },
+  "energy": {
+    "outages": "Power Outages",
+    "load": "Grid Load",
+    "transformers": "Transformers",
+    "reliability": "Reliability"
+  },
+  "transit": {
+    "activeVehicles": "Active Vehicles",
+    "averageDelay": "Average Delay",
+    "overCapacity": "Over Capacity",
+    "serviceReliability": "Service Reliability",
+    "priorityOperations": "Priority Operations",
+    "disruptionsQueue": "Disruptions and Delays Queue"
+  },
   "citizen": {
     "nav": {
       "home": "Home",
@@ -172,7 +220,8 @@
       "track": "Track",
       "alerts": "Alerts",
       "backToDashboard": "Operator Dashboard",
-      "brand": "Smart Chennai"
+      "brand": "Smart Chennai",
+      "myReports": "My Reports"
     },
     "home": {
       "title": "Smart Chennai Citizen Portal",
@@ -277,6 +326,21 @@
       "timeAgo": "{time} ago",
       "autoScroll": "Auto-scroll",
       "soundAlerts": "Sound alerts"
+    },
+    "services": {
+      "myReports": "My Reports",
+      "newReport": "Report an Issue",
+      "allReports": "All Reports",
+      "submittedAt": "Submitted",
+      "status": "Status",
+      "sla": "SLA",
+      "category": "Category",
+      "department": "Department",
+      "linkedAsset": "Linked Asset",
+      "workOrder": "Work Order",
+      "noReports": "No reports yet",
+      "reportAnother": "Report Another Issue",
+      "nearbyDuplicate": "Similar issue already reported nearby"
     }
   },
   "executive": {
@@ -386,7 +450,10 @@
     "aiDisclosure": "AI-GENERATED CCTV SIMULATION FOR DEMONSTRATION PURPOSES",
     "liveAiGenerated": "LIVE • AI GENERATED",
     "generatingNext": "GENERATING",
-    "aiAnalyticsActive": "AI ANALYTICS ACTIVE"
+    "aiAnalyticsActive": "AI ANALYTICS ACTIVE",
+    "simulatedCCTV": "SIMULATED CCTV",
+    "simulatedTelemetry": "LIVE DEMO • SIMULATED TELEMETRY",
+    "videoUnavailable": "VIDEO UNAVAILABLE"
   },
   "assets": {
     "pageTitle": "City Asset Registry",

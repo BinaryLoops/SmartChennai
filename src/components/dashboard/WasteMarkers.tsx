@@ -1,9 +1,11 @@
 "use client";
 
 import { Marker, Popup, Polyline } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 
 import { useEffect, useState } from "react";
+import React from "react";
 
 // Map markers
 const garbageBinIcon = new L.Icon({
@@ -34,55 +36,57 @@ export function WasteMarkers() {
     return () => clearInterval(interval);
   }, []);
 
-  if (!overviewData || !overviewData.bins) return null;
+  if (!overviewData || !Array.isArray(overviewData.bins)) return null;
 
   return (
     <>
       {/* Bins */}
-      {overviewData.bins.map((bin: any) => (
-        <Marker
-          key={bin.id}
-          position={[bin.lat, bin.lng]}
-          icon={garbageBinIcon}
-        >
-          <Popup className="custom-popup">
-            <div className="p-1">
-              <div className="text-xs text-text-muted mb-1">{bin.zoneName}</div>
-              <div className="font-semibold text-text mb-2">Garbage Bin {bin.id.slice(0, 6)}</div>
-              
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <span className="text-text-muted">Fill Level</span>
-                <span className={bin.fillPercentage >= 95 ? "text-red-500 font-bold" : bin.fillPercentage >= 80 ? "text-yellow-500" : "text-emerald-500"}>
-                  {bin.fillPercentage}%
-                </span>
+      <MarkerClusterGroup chunkedLoading maxClusterRadius={50} disableClusteringAtZoom={15}>
+        {overviewData.bins.map((bin: any) => (
+          <Marker
+            key={bin.id}
+            position={[bin.lat, bin.lng]}
+            icon={garbageBinIcon}
+          >
+            <Popup className="custom-popup">
+              <div className="p-1">
+                <div className="text-xs text-text-muted mb-1">{bin.zoneName}</div>
+                <div className="font-semibold text-text mb-2">Garbage Bin {bin.id.slice(0, 6)}</div>
+                
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <span className="text-text-muted">Fill Level</span>
+                  <span className={bin.fillPercentage >= 95 ? "text-red-500 font-bold" : bin.fillPercentage >= 80 ? "text-yellow-500" : "text-emerald-500"}>
+                    {bin.fillPercentage}%
+                  </span>
 
-                <span className="text-text-muted">Status</span>
-                <span className="text-text">{bin.status}</span>
+                  <span className="text-text-muted">Status</span>
+                  <span className="text-text">{bin.status}</span>
 
-                <span className="text-text-muted">Priority</span>
-                <span className="text-text">{bin.priorityScore}</span>
+                  <span className="text-text-muted">Priority</span>
+                  <span className="text-text">{bin.priorityScore}</span>
 
-                {bin.predictedOverflow && (
-                  <>
-                    <span className="text-text-muted">Overflow ETA</span>
-                    <span className="text-red-400">{new Date(bin.predictedOverflow).toLocaleTimeString()}</span>
-                  </>
-                )}
+                  {bin.predictedOverflow && (
+                    <>
+                      <span className="text-text-muted">Overflow ETA</span>
+                      <span className="text-red-400">{new Date(bin.predictedOverflow).toLocaleTimeString()}</span>
+                    </>
+                  )}
 
-                {bin.assignedVehicle && (
-                  <>
-                    <span className="text-text-muted">Assigned To</span>
-                    <span className="text-blue-400">{bin.assignedVehicle}</span>
-                  </>
-                )}
+                  {bin.assignedVehicle && (
+                    <>
+                      <span className="text-text-muted">Assigned To</span>
+                      <span className="text-blue-400">{bin.assignedVehicle}</span>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+            </Popup>
+          </Marker>
+        ))}
+      </MarkerClusterGroup>
 
       {/* Vehicles & Routes */}
-      {overviewData.activeRoutes?.map((route: any) => (
+      {Array.isArray(overviewData.activeRoutes) && overviewData.activeRoutes.map((route: any) => (
         <div key={route.id}>
           <Marker position={[route.lat, route.lng]} icon={vehicleIcon}>
              <Popup className="custom-popup">
@@ -104,3 +108,5 @@ export function WasteMarkers() {
     </>
   );
 }
+
+export default React.memo(WasteMarkers);

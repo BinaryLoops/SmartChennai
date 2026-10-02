@@ -109,17 +109,27 @@ function initSocket() {
     notifySubscribers();
   });
 
-  globalSocket.on(SOCKET_EVENTS.trafficUpdate, (payload: TrafficUpdatePayload) => {
-    globalState.trafficByJunction.set(payload.junctionId, payload);
+  globalSocket.on(SOCKET_EVENTS.trafficUpdate, (payload: TrafficUpdatePayload | TrafficUpdatePayload[]) => {
+    const payloads = Array.isArray(payload) ? payload : [payload];
+    if (payloads.length === 0) return;
+
+    let lastTs = "";
+    for (const p of payloads) {
+      globalState.trafficByJunction.set(p.junctionId, p);
+      lastTs = p.timestamp;
+    }
+
     const history = globalState.congestionHistory;
-    const lastTs = history.length > 0 ? history[history.length - 1].timestamp : "";
-    if (payload.timestamp !== lastTs) {
+    const lastHistoryTs = history.length > 0 ? history[history.length - 1].timestamp : "";
+    
+    if (lastTs && lastTs !== lastHistoryTs) {
       const avgCong = computeAvgCongestion();
-      history.push({ timestamp: payload.timestamp, avgCongestion: avgCong });
+      history.push({ timestamp: lastTs, avgCongestion: avgCong });
       if (history.length > MAX_HISTORY_POINTS) {
         history.splice(0, history.length - MAX_HISTORY_POINTS);
       }
     }
+    
     globalState = {
       ...globalState,
       trafficByJunction: new Map(globalState.trafficByJunction),
@@ -129,8 +139,14 @@ function initSocket() {
     notifySubscribers();
   });
 
-  globalSocket.on(SOCKET_EVENTS.waterUpdate, (payload: WaterUpdatePayload) => {
-    globalState.waterBySensor.set(payload.sensorId, payload);
+  globalSocket.on(SOCKET_EVENTS.waterUpdate, (payload: WaterUpdatePayload | WaterUpdatePayload[]) => {
+    const payloads = Array.isArray(payload) ? payload : [payload];
+    if (payloads.length === 0) return;
+
+    for (const p of payloads) {
+      globalState.waterBySensor.set(p.sensorId, p);
+    }
+    
     globalState = {
       ...globalState,
       waterBySensor: new Map(globalState.waterBySensor),

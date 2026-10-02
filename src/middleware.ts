@@ -24,7 +24,7 @@ export default async function middleware(req: NextRequest) {
 
   // 1. API Routes (Bypass next-intl completely to prevent locale redirects)
   if (pathname.startsWith("/api/")) {
-    if (pathname.includes("/api/auth/login") || pathname.includes("/api/citizen") || pathname.includes("/api/incidents") || pathname.includes("/api/predict")) {
+    if (pathname.includes("/api/auth/login") || pathname.includes("/api/citizen") || pathname.includes("/api/incidents") || pathname.includes("/api/predict") || pathname.includes("/api/cctv/generate") || pathname.includes("/api/cctv/analysis")) {
       return NextResponse.next();
     }
     

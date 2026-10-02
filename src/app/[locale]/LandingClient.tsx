@@ -167,12 +167,12 @@ export default function LandingClient({ locale }: { locale: string }) {
                 {t("cta")} →
               </a>
 
-              <a
-                href={`/${locale}/dashboard/traffic`}
-                className="rounded-full border border-slate-700 bg-slate-900/80 px-6 py-3.5 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:bg-slate-800 hover:border-slate-600 flex items-center gap-2"
+              <button
+                onClick={() => setCinemaMode(true)}
+                className="rounded-full border border-slate-700 bg-slate-900/80 px-6 py-3.5 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:bg-slate-800 hover:border-slate-600 flex items-center gap-2 cursor-pointer"
               >
                 <span>▶</span> {t("watchOverview")}
-              </a>
+              </button>
             </div>
           </div>
 

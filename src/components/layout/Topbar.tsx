@@ -1,7 +1,8 @@
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { DemoModeSwitcher } from "./DemoModeSwitcher";
-import { ConnectionStatus } from "./ConnectionStatus";
+import dynamic from "next/dynamic";
+const ConnectionStatus = dynamic(() => import("./ConnectionStatus").then((mod) => mod.ConnectionStatus), { ssr: false });
 import { ZoneIntelligence } from "../dashboard/extended/ZoneIntelligence";
 import { DemoIndicator } from "../dashboard/extended/DemoIndicator";
 

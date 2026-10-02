@@ -258,7 +258,50 @@ export async function GET(
               powerState: energy.powerState,
               assetStatus: energy.status,
               dependentStreetlights: energy.streetlights.length,
-              dependentAssets: energy.dependentAssets.length,
+              dependentOtherAssets: energy.dependentAssets.length,
+            };
+          }
+          break;
+        }
+        case "HealthcareFacility": {
+          const hosp = await prisma.healthcareFacility.findUnique({
+            where: { id: asset.refId },
+          });
+          if (hosp) {
+            detail.status = hosp.status === "CRITICAL" ? "CRITICAL" : hosp.status === "OVER_CAPACITY" ? "WARNING" : "HEALTHY";
+            detail.healthScore = hosp.status === "CRITICAL" ? 10 : hosp.status === "OVER_CAPACITY" ? 40 : hosp.status === "BUSY" ? 70 : 100;
+            detail.lastSeenAt = hosp.lastSeen?.toISOString();
+            detail.liveData = {
+              type: "healthcare",
+              facilityType: hosp.facilityType,
+              status: hosp.status,
+              totalBeds: hosp.totalBeds,
+              occupiedBeds: hosp.occupiedBeds,
+              icuBeds: hosp.icuBeds,
+              occupiedIcuBeds: hosp.occupiedIcuBeds,
+              emergencyBeds: hosp.emergencyBeds,
+              occupiedEmergencyBeds: hosp.occupiedEmergencyBeds,
+              waitTimeMinutes: hosp.waitTimeMinutes
+            };
+          }
+          break;
+        }
+        case "EmergencyUnit": {
+          const unit = await prisma.emergencyUnit.findUnique({
+            where: { id: asset.refId },
+            include: { destinationFacility: true }
+          });
+          if (unit) {
+            detail.status = unit.status === "AVAILABLE" ? "HEALTHY" : unit.status === "OFFLINE" ? "OFFLINE" : "WARNING";
+            detail.healthScore = unit.status === "AVAILABLE" ? 100 : unit.status === "OFFLINE" ? 0 : 80;
+            detail.lastSeenAt = unit.lastSeen?.toISOString();
+            detail.liveData = {
+              type: "emergency_unit",
+              unitType: unit.type,
+              status: unit.status,
+              crewState: unit.crewState,
+              destination: unit.destinationFacility?.name || null,
+              eta: unit.eta
             };
           }
           break;
@@ -282,7 +325,23 @@ export async function GET(
       select: { id: true, type: true, severity: true, status: true, reportedAt: true, description: true },
     });
 
+    const activeWorkOrders = await prisma.workOrder.findMany({
+      where: {
+        assetId: asset.id,
+        status: { notIn: ['COMPLETED', 'CANCELLED'] }
+      },
+      include: { Crew: true }
+    });
+
+    const relatedProjects = await prisma.infrastructureProject.findMany({
+      where: {
+        AffectedAssets: { some: { id: asset.id } }
+      }
+    });
+
     detail.relatedIncidents = relatedIncidents;
+    detail.activeWorkOrders = activeWorkOrders;
+    detail.relatedProjects = relatedProjects;
 
     return NextResponse.json(detail);
   } catch (err) {

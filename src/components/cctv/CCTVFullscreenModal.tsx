@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import { ContinuousAIPlayer } from "./ContinuousAIPlayer";
+import { CCTVAIPanel } from "./CCTVAIPanel";
 
 interface CameraInfo {
   id: string;
@@ -117,10 +118,14 @@ export function CCTVFullscreenModal({
                 vehiclesPerHour={traffic?.vehiclesPerHour ?? 0}
                 congestionLevel={traffic?.congestionLevel ?? 0}
                 avgSpeed={traffic?.avgSpeedKph ?? 0}
-                incident={incident}
-                className="aspect-video w-full"
-                enabled={camera.status === "online"}
+                incident={incident ? { type: incident.type, severity: incident.severity } : null}
+                className="h-full w-full object-cover"
+                enabled={true}
               />
+            </div>
+            {/* Additive CCTVAIPanel on the side */}
+            <div className="w-full lg:w-80 shrink-0 p-4 border-t lg:border-t-0 lg:border-l border-border overflow-y-auto max-h-[600px] lg:max-h-none custom-scrollbar">
+              <CCTVAIPanel cameraId={camera.id} />
             </div>
 
             {/* Side Panel */}

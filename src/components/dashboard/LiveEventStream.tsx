@@ -4,7 +4,7 @@ import { useSocket } from "@/hooks/useSocket";
 import { AlertCircle, AlertTriangle, Info, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { useMapFocus } from "../map/MapContext";
 
-export function LiveEventStream() {
+export function LiveEventStream({ filter }: { filter?: string }) {
   const { cityEvents } = useSocket();
   const { setFocus } = useMapFocus();
 
@@ -63,7 +63,9 @@ export function LiveEventStream() {
           </div>
         ) : (
           <div className="space-y-2">
-            {cityEvents.map((event) => (
+            {cityEvents
+          .filter(e => !filter || e.type === filter || (filter === "HEALTHCARE" && (e.type === "MEDICAL" || e.type === "EMERGENCY")) || (filter === "DISASTER" && (e.type === "ENVIRONMENT" || e.type === "WATER" || e.type === "WEATHER")))
+          .map((event, i) => (
               <div 
                 key={event.id}
                 onClick={() => {

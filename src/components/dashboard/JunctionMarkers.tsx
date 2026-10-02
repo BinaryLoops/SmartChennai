@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { Marker, Tooltip } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import type { TrafficUpdatePayload } from "@packages/types";
 import type { JunctionData } from "./ChennaiMap";
 import { createSemanticIcon, StatusColor } from "../map/MapIcons";
@@ -23,6 +24,7 @@ function statusColor(status: StatusColor): string {
   return "#EF4444";
 }
 
+import React from "react";
 export function JunctionMarkers({
   junctions,
   trafficByJunction,
@@ -50,7 +52,7 @@ export function JunctionMarkers({
   }, [junctions, trafficByJunction]);
 
   return (
-    <>
+    <MarkerClusterGroup chunkedLoading maxClusterRadius={40} disableClusteringAtZoom={15}>
       {markers.map((m) => (
         <Marker
           key={m.id}
@@ -80,8 +82,8 @@ export function JunctionMarkers({
           </Tooltip>
         </Marker>
       ))}
-    </>
+    </MarkerClusterGroup>
   );
 }
 
-export default JunctionMarkers;
+export default React.memo(JunctionMarkers);

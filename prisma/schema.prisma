@@ -8,16 +8,21 @@ datasource db {
 }
 
 model Zone {
-  id           String        @id @default(cuid())
-  name         String
-  boundary     Json
-  population   Int
-  CityEvent    CityEvent[]
-  GarbageBin   GarbageBin[]
-  junctions    Junction[]
-  StreetLight  StreetLight[]
-  waterSensors WaterSensor[]
-  EnergyAsset  EnergyAsset[]
+  id                      String                    @id @default(cuid())
+  name                    String
+  boundary                Json
+  population              Int
+  CityEvent               CityEvent[]
+  GarbageBin              GarbageBin[]
+  junctions               Junction[]
+  StreetLight             StreetLight[]
+  waterSensors            WaterSensor[]
+  EnergyAsset             EnergyAsset[]
+  transitStops            TransitStop[]
+  HealthcareFacility      HealthcareFacility[]
+  WorkOrder               WorkOrder[]
+  InfrastructureProject   InfrastructureProject[]
+  CitizenServiceRequests  CitizenServiceRequest[]
 }
 
 model Junction {
@@ -79,6 +84,16 @@ model EmergencyUnit {
   lng         Float
   isAvailable Boolean    @default(true)
   incidents   Incident[]
+
+  // Healthcare / Operational Add-ons
+  status                String    @default("AVAILABLE") // AVAILABLE, DISPATCHED, EN_ROUTE, AT_SCENE, TRANSPORTING, AT_HOSPITAL, RETURNING, OFFLINE
+  destinationFacilityId String?
+  eta                   DateTime?
+  crewState             String    @default("READY")
+  lastSeen              DateTime  @default(now())
+  currentIncidentId     String?
+
+  destinationFacility HealthcareFacility? @relation("AmbulanceDestination", fields: [destinationFacilityId], references: [id])
 }
 
 model Incident {
@@ -98,9 +113,10 @@ model Incident {
   priorityScore   Float?
   referenceId     String?        @unique
   resolutionNotes String?
-  CityEvent       CityEvent[]
-  unit            EmergencyUnit? @relation(fields: [unitId], references: [id])
-  WorkOrder       WorkOrder?
+  CityEvent              CityEvent[]
+  unit                   EmergencyUnit? @relation(fields: [unitId], references: [id])
+  WorkOrders             WorkOrder[]
+  CitizenServiceRequests CitizenServiceRequest[]
 
   @@index([status, severity])
 }
@@ -169,28 +185,32 @@ model User {
 }
 
 model CityAsset {
-  id String @id @default(cuid())
-  assetCode       String            @unique
-  name            String
-  assetType       String
-  category        AssetCategory
-  lat             Float
-  lng             Float
-  zoneId          String?
-  ward            String?
-  status          AssetStatus       @default(UNKNOWN)
-  healthScore     Int               @default(100)
-  refType         String?
-  refId           String?
-  isDemo          Boolean           @default(true)
-  metadata        Json?
-  lastSeenAt      DateTime?
-  createdAt       DateTime          @default(now())
-  updatedAt DateTime @updatedAt
-  energyAssetId     String?
-  EnergyAsset       EnergyAsset?      @relation("DependentCityAssets", fields: [energyAssetId], references: [id])
-  CityEvent       CityEvent[]
-  TelemetrySample TelemetrySample[]
+  id                       String                    @id @default(cuid())
+  assetCode                String                    @unique
+  name                     String
+  assetType                String
+  category                 AssetCategory
+  lat                      Float
+  lng                      Float
+  zoneId                   String?
+  ward                     String?
+  status                   AssetStatus               @default(UNKNOWN)
+  healthScore              Int                       @default(100)
+  refType                  String?
+  refId                    String?
+  isDemo                   Boolean                   @default(true)
+  metadata                 Json?
+  lastSeenAt               DateTime?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  energyAssetId            String?
+  EnergyAsset              EnergyAsset?              @relation("DependentCityAssets", fields: [energyAssetId], references: [id])
+  HealthcareFacility       HealthcareFacility?
+  CityEvent                CityEvent[]
+  TelemetrySample          TelemetrySample[]
+  WorkOrders               WorkOrder[]
+  Projects                 InfrastructureProject[]   @relation("ProjectAssets")
+  CitizenServiceRequests   CitizenServiceRequest[]
 
   @@index([assetType])
   @@index([category])
@@ -201,7 +221,7 @@ model CityAsset {
 }
 
 model CityEvent {
-  id String @id @default(cuid())
+  id                String     @id @default(cuid())
   type              String
   severity          String
   description       String
@@ -223,12 +243,12 @@ model CityEvent {
 }
 
 model EnvironmentSensor {
-  id String @id @default(cuid())
+  id          String   @id @default(cuid())
   aqi         Int      @default(50)
   pm25        Float    @default(15.0)
   temperature Float    @default(32.0)
   humidity    Float    @default(60.0)
-  updatedAt DateTime @updatedAt
+  updatedAt   DateTime @updatedAt
   co          Float    @default(0.5)
   no2         Float    @default(10.0)
   noise       Float    @default(50.0)
@@ -240,15 +260,15 @@ model EnvironmentSensor {
 }
 
 model GarbageBin {
-  id                String           @id @default(cuid())
-  zoneId            String
-  lat               Float
-  lng               Float
-  fillPercentage    Int              @default(0)
-  status            String           @default("ok")
-  lastCollected     DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  
+  id             String   @id @default(cuid())
+  zoneId         String
+  lat            Float
+  lng            Float
+  fillPercentage Int      @default(0)
+  status         String   @default("ok")
+  lastCollected  DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
   // Operational Add-ons
   fillRate          Float            @default(2.5) // % per simulated hour
   predictedOverflow DateTime?
@@ -257,56 +277,88 @@ model GarbageBin {
   assignedVehicle   WasteVehicle?    @relation(fields: [assignedVehicleId], references: [id])
   wasteRouteStops   WasteRouteStop[]
 
-  Zone              Zone             @relation(fields: [zoneId], references: [id])
+  Zone Zone @relation(fields: [zoneId], references: [id])
 
   @@index([zoneId])
 }
 
 model WasteVehicle {
-  id              String       @id @default(cuid())
-  assetCode       String       @unique // e.g. SW-017
-  status          String       @default("AVAILABLE") // AVAILABLE, EN_ROUTE, ARRIVED, COLLECTING, FULL, OFFLINE
-  lat             Float
-  lng             Float
-  capacity        Int          @default(100) // 100%
-  currentLoad     Int          @default(0) // 0-100%
-  assignedBins    GarbageBin[]
-  routes          WasteRoute[]
-  updatedAt       DateTime     @updatedAt
+  id           String       @id @default(cuid())
+  assetCode    String       @unique // e.g. SW-017
+  status       String       @default("AVAILABLE") // AVAILABLE, EN_ROUTE, ARRIVED, COLLECTING, FULL, OFFLINE
+  lat          Float
+  lng          Float
+  capacity     Int          @default(100) // 100%
+  currentLoad  Int          @default(0) // 0-100%
+  assignedBins GarbageBin[]
+  routes       WasteRoute[]
+  updatedAt    DateTime     @updatedAt
 }
 
 model WasteRoute {
-  id              String           @id @default(cuid())
-  vehicleId       String
-  vehicle         WasteVehicle     @relation(fields: [vehicleId], references: [id])
-  status          String           @default("ASSIGNED") // ASSIGNED, IN_PROGRESS, COMPLETED
-  startTime       DateTime?
-  completionTime  DateTime?
-  slaDeadline     DateTime?
-  stops           WasteRouteStop[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id             String           @id @default(cuid())
+  vehicleId      String
+  vehicle        WasteVehicle     @relation(fields: [vehicleId], references: [id])
+  status         String           @default("ASSIGNED") // ASSIGNED, IN_PROGRESS, COMPLETED
+  startTime      DateTime?
+  completionTime DateTime?
+  slaDeadline    DateTime?
+  stops          WasteRouteStop[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   @@index([vehicleId])
 }
 
 model WasteRouteStop {
-  id              String       @id @default(cuid())
-  routeId         String
-  route           WasteRoute   @relation(fields: [routeId], references: [id])
-  binId           String?
-  bin             GarbageBin?  @relation(fields: [binId], references: [id])
-  order           Int
-  status          String       @default("PENDING") // PENDING, ARRIVED, COLLECTING, COLLECTED
-  eta             DateTime?
-  completedAt     DateTime?
-  
+  id          String      @id @default(cuid())
+  routeId     String
+  route       WasteRoute  @relation(fields: [routeId], references: [id])
+  binId       String?
+  bin         GarbageBin? @relation(fields: [binId], references: [id])
+  order       Int
+  status      String      @default("PENDING") // PENDING, ARRIVED, COLLECTING, COLLECTED
+  eta         DateTime?
+  completedAt DateTime?
+
   @@index([routeId])
   @@index([binId])
 }
 
+model HealthcareFacility {
+  id                    String   @id @default(cuid())
+  cityAssetId           String   @unique
+  facilityCode          String   @unique
+  name                  String
+  facilityType          String // GOVERNMENT_HOSPITAL, PRIVATE_HOSPITAL, PRIMARY_HEALTH_CENTER, EMERGENCY_CENTER, TRAUMA_CENTER
+  status                String   @default("OPERATIONAL") // OPERATIONAL, BUSY, OVER_CAPACITY, CRITICAL, PARTIAL_OUTAGE, OFFLINE, RECOVERING
+  lat                   Float
+  lng                   Float
+  zoneId                String
+  totalBeds             Int
+  occupiedBeds          Int      @default(0)
+  icuBeds               Int
+  occupiedIcuBeds       Int      @default(0)
+  emergencyBeds         Int
+  occupiedEmergencyBeds Int      @default(0)
+  ambulanceCapacity     Int
+  availableAmbulances   Int      @default(0)
+  staffAvailability     Float    @default(1.0)
+  waitTimeMinutes       Int      @default(0)
+  lastSeen              DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  cityAsset         CityAsset       @relation(fields: [cityAssetId], references: [id])
+  zone              Zone            @relation(fields: [zoneId], references: [id])
+  inboundAmbulances EmergencyUnit[] @relation("AmbulanceDestination")
+
+  @@index([zoneId])
+  @@index([status])
+}
+
 model PublicVehicle {
-  id String @id @default(cuid())
+  id        String   @id @default(cuid())
   type      String   @default("bus")
   routeId   String
   lat       Float
@@ -318,52 +370,52 @@ model PublicVehicle {
 }
 
 model StreetLight {
-  id String @id @default(cuid())
+  id               String       @id @default(cuid())
   zoneId           String
   lat              Float
   lng              Float
-  status           String   @default("online")
-  powerConsumption Float    @default(0)
-  dimmingLevel     Int      @default(100)
-  updatedAt DateTime @updatedAt
+  status           String       @default("online")
+  powerConsumption Float        @default(0)
+  dimmingLevel     Int          @default(100)
+  updatedAt        DateTime     @updatedAt
   energyAssetId    String?
   EnergyAsset      EnergyAsset? @relation(fields: [energyAssetId], references: [id])
-  Zone             Zone     @relation(fields: [zoneId], references: [id])
+  Zone             Zone         @relation(fields: [zoneId], references: [id])
 
   @@index([zoneId])
   @@index([energyAssetId])
 }
 
 model EnergyAsset {
-  id              String         @id @default(cuid())
-  type            String         @default("TRANSFORMER") // SUBSTATION, TRANSFORMER, FEEDER
-  zoneId          String
-  lat             Float
-  lng             Float
-  status          String         @default("NORMAL")
-  capacity        Float          @default(100)
-  currentLoad     Float          @default(0)
-  temperature     Float?
-  voltage         Float?
-  powerState      String?        @default("ON")
-  lastSeen        DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  
-  parentId        String?
-  parent          EnergyAsset?   @relation("EnergyHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  children        EnergyAsset[]  @relation("EnergyHierarchy")
+  id          String   @id @default(cuid())
+  type        String   @default("TRANSFORMER") // SUBSTATION, TRANSFORMER, FEEDER
+  zoneId      String
+  lat         Float
+  lng         Float
+  status      String   @default("NORMAL")
+  capacity    Float    @default(100)
+  currentLoad Float    @default(0)
+  temperature Float?
+  voltage     Float?
+  powerState  String?  @default("ON")
+  lastSeen    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parentId String?
+  parent   EnergyAsset?  @relation("EnergyHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children EnergyAsset[] @relation("EnergyHierarchy")
 
   streetlights    StreetLight[]
-  dependentAssets CityAsset[]    @relation("DependentCityAssets")
+  dependentAssets CityAsset[]   @relation("DependentCityAssets")
 
-  Zone            Zone           @relation(fields: [zoneId], references: [id])
+  Zone Zone @relation(fields: [zoneId], references: [id])
 
   @@index([zoneId])
   @@index([parentId])
 }
 
 model TelemetrySample {
-  id String @id @default(cuid())
+  id        String    @id @default(cuid())
   assetId   String
   metric    String
   value     Float
@@ -377,15 +429,131 @@ model TelemetrySample {
 }
 
 model WorkOrder {
-  id String @id @default(cuid())
-  incidentId   String    @unique
+  id           String    @id @default(cuid())
+  incidentId   String?
   assignedTeam String?
   notes        String?
   startedAt    DateTime?
   completedAt  DateTime?
   createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workOrderCode       String    @unique @default(cuid())
+  assetId             String?
+  projectId           String?
+  zoneId              String?
+  assignedCrewId      String?
+  category            String    @default("OTHER")
+  priority            String    @default("MEDIUM")
+  status              String    @default("OPEN")
+  description         String?
+  resolutionNotes     String?
+  reportedAt          DateTime  @default(now())
+  assignedAt          DateTime?
+  slaDueAt            DateTime?
+  estimatedCompletion DateTime?
+  actualCompletion    DateTime?
+
+  Incident  Incident?              @relation(fields: [incidentId], references: [id])
+  CityAsset CityAsset?             @relation(fields: [assetId], references: [id])
+  Project   InfrastructureProject? @relation(fields: [projectId], references: [id])
+  Zone      Zone?                  @relation(fields: [zoneId], references: [id])
+  Crew      MaintenanceCrew?       @relation(fields: [assignedCrewId], references: [id])
+  Updates   WorkOrderUpdate[]
+  CitizenServiceRequests CitizenServiceRequest[]
+
+  @@index([incidentId])
+  @@index([assetId])
+  @@index([projectId])
+  @@index([zoneId])
+  @@index([assignedCrewId])
+  @@index([status])
+}
+
+model InfrastructureProject {
+  id          String  @id @default(cuid())
+  projectCode String  @unique
+  name        String
+  description String?
+  projectType String  @default("OTHER")
+  status      String  @default("PLANNED")
+  priority    String  @default("MEDIUM")
+  zoneId      String?
+  lat         Float?
+  lng         Float?
+
+  startDate       DateTime?
+  plannedEndDate  DateTime?
+  actualEndDate   DateTime?
+  progressPercent Float     @default(0)
+  budgetPlanned   Float     @default(0)
+  budgetSpent     Float     @default(0)
+
+  contractorName String?
+  department     String?
+  projectManager String?
+
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  Incident     Incident  @relation(fields: [incidentId], references: [id])
+  parentId  String?
+
+  parent                 InfrastructureProject?  @relation("ProjectHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  InfrastructureProjects InfrastructureProject[] @relation("ProjectHierarchy")
+  Zone                   Zone?                   @relation(fields: [zoneId], references: [id])
+  AffectedAssets         CityAsset[]             @relation("ProjectAssets")
+  WorkOrders             WorkOrder[]
+
+  @@index([zoneId])
+  @@index([parentId])
+  @@index([status])
+}
+
+model CCTVAnalysis {
+  id                 String   @id @default(cuid())
+  cameraId           String
+  analyzedAt         DateTime @default(now())
+  videoAsset         String
+  durationSeconds    Int
+  trafficJson        Json
+  incidentJson       Json
+  infrastructureJson Json
+  confidence         Float
+  observationsJson   Json
+  createdAt          DateTime @default(now())
+
+  @@index([cameraId, analyzedAt])
+}
+
+model MaintenanceCrew {
+  id                 String   @id @default(cuid())
+  crewCode           String   @unique
+  department         String?
+  specialization     String   @default("GENERAL")
+  status             String   @default("AVAILABLE")
+  lat                Float?
+  lng                Float?
+  capacity           Int      @default(1)
+  currentWorkOrderId String?
+  lastSeen           DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  WorkOrders WorkOrder[]
+
+  @@index([status])
+  @@index([specialization])
+}
+
+model WorkOrderUpdate {
+  id          String   @id @default(cuid())
+  workOrderId String
+  status      String
+  note        String?
+  timestamp   DateTime @default(now())
+
+  WorkOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
 }
 
 enum Role {
@@ -442,4 +610,226 @@ enum AssetStatus {
   OFFLINE
   MAINTENANCE
   UNKNOWN
+}
+
+model TransitRoute {
+  id                   String             @id @default(cuid())
+  routeCode            String             @unique
+  name                 String
+  origin               String
+  destination          String
+  status               String             @default("ACTIVE")
+  distanceKm           Float              @default(0)
+  estimatedDurationMin Int                @default(0)
+  polyline             String? // Encoded polyline or JSON string for map
+  activeVehicles       Int                @default(0)
+  scheduledFrequency   Int                @default(15) // minutes
+  currentDemand        String             @default("NORMAL")
+  stops                TransitRouteStop[]
+  trips                TransitTrip[]
+  vehicles             TransitVehicle[]
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+}
+
+model TransitStop {
+  id                       String             @id @default(cuid())
+  stopCode                 String             @unique
+  name                     String
+  lat                      Float
+  lng                      Float
+  zoneId                   String?
+  shelterStatus            String             @default("NORMAL")
+  accessibilityStatus      String             @default("ACCESSIBLE")
+  passengerDemand          Float              @default(0)
+  currentWaitingPassengers Int                @default(0)
+  status                   String             @default("ACTIVE")
+  routeStops               TransitRouteStop[]
+  zone                     Zone?              @relation(fields: [zoneId], references: [id])
+  updatedAt                DateTime           @updatedAt
+
+  @@index([zoneId])
+}
+
+model TransitRouteStop {
+  id                String       @id @default(cuid())
+  routeId           String
+  stopId            String
+  stopIndex         Int
+  distanceFromStart Float        @default(0)
+  route             TransitRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  stop              TransitStop  @relation(fields: [stopId], references: [id], onDelete: Cascade)
+
+  @@unique([routeId, stopIndex])
+  @@index([routeId])
+  @@index([stopId])
+}
+
+model TransitTrip {
+  id               String          @id @default(cuid())
+  routeId          String
+  vehicleId        String?
+  tripCode         String
+  direction        String          @default("OUTBOUND")
+  scheduledStart   DateTime?
+  scheduledEnd     DateTime?
+  actualStart      DateTime?
+  actualEnd        DateTime?
+  status           String          @default("SCHEDULED")
+  delayMinutes     Int             @default(0)
+  currentStopIndex Int             @default(0)
+  route            TransitRoute    @relation(fields: [routeId], references: [id])
+  vehicle          TransitVehicle? @relation(fields: [vehicleId], references: [id])
+
+  @@index([routeId])
+  @@index([vehicleId])
+}
+
+model TransitVehicle {
+  id            String        @id @default(cuid())
+  vehicleCode   String        @unique
+  vehicleType   String        @default("BUS")
+  status        String        @default("IN_SERVICE")
+  routeId       String?
+  lat           Float
+  lng           Float
+  heading       Float         @default(0)
+  speed         Float         @default(0)
+  occupancy     Int           @default(0)
+  capacity      Int           @default(60)
+  currentStopId String?
+  nextStopId    String?
+  delayMinutes  Int           @default(0)
+  lastSeen      DateTime      @default(now())
+  healthStatus  String        @default("HEALTHY")
+  route         TransitRoute? @relation(fields: [routeId], references: [id])
+  trips         TransitTrip[]
+  updatedAt     DateTime      @updatedAt
+
+  @@index([routeId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAR #10 — Citizen 360 / Grievance & Public Service Intelligence
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CitizenServiceRequest {
+  id             String          @id @default(cuid())
+  referenceCode  String          @unique
+  sessionToken   String?
+  category       ServiceCategory
+  description    String
+  lat            Float
+  lng            Float
+  zoneId         String?
+  ward           String?
+  assetId        String?         // nearest relevant CityAsset
+  status         ServiceStatus   @default(SUBMITTED)
+  priority       String          @default("MEDIUM") // LOW | MEDIUM | HIGH | CRITICAL
+  department     String?
+  slaDueAt       DateTime?
+  submittedAt    DateTime        @default(now())
+  receivedAt     DateTime?
+  verifiedAt     DateTime?
+  triagedAt      DateTime?
+  assignedAt     DateTime?
+  inProgressAt   DateTime?
+  resolvedAt     DateTime?
+  closedAt       DateTime?
+  updatedAt      DateTime        @updatedAt
+
+  incidentId   String?           // if escalated to emergency Incident
+  workOrderId  String?           // if linked to a WorkOrder
+
+  rating         Int?            // 1-5 citizen satisfaction
+  ratingFeedback String?
+  ratedAt        DateTime?
+
+  zone      Zone?      @relation(fields: [zoneId], references: [id])
+  asset     CityAsset? @relation(fields: [assetId], references: [id])
+  incident  Incident?  @relation(fields: [incidentId], references: [id])
+  workOrder WorkOrder? @relation(fields: [workOrderId], references: [id])
+  timeline  ServiceRequestUpdate[]
+
+  @@index([sessionToken])
+  @@index([status])
+  @@index([category])
+  @@index([zoneId])
+  @@index([assetId])
+  @@index([submittedAt(sort: Desc)])
+  @@index([incidentId])
+  @@index([workOrderId])
+}
+
+model ServiceRequestUpdate {
+  id        String   @id @default(cuid())
+  requestId String
+  status    String
+  note      String?
+  timestamp DateTime @default(now())
+
+  request CitizenServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
+
+enum ServiceCategory {
+  ROAD
+  WATER
+  DRAINAGE
+  STREETLIGHT
+  WASTE
+  TRAFFIC
+  CCTV
+  PUBLIC_FACILITY
+  TRANSIT
+  OTHER
+}
+
+enum ServiceStatus {
+  SUBMITTED
+  RECEIVED
+  VERIFIED
+  TRIAGED
+  ASSIGNED
+  IN_PROGRESS
+  BLOCKED
+  RESOLVED
+  CLOSED
+  REJECTED
+}
+
+// ── STAR ADD-ON #11: PREDICTIVE CITY INTELLIGENCE ─────────────────────────────
+
+model PredictionSnapshot {
+  id              String               @id @default(cuid())
+  domain          String               // traffic | flood | environment | waste | energy | transit | emergency | citizen | infrastructure
+  entityType      String               // junction | zone | sensor | route | bin | workOrder | global
+  entityId        String?
+  metric          String               // congestionLevel | floodRisk | aqiTrend | overflowProb | loadRisk ...
+  horizonMinutes  Int                  // 15 | 30 | 60
+  predictedValue  Float
+  confidence      Float                // 0–1
+  baselineValue   Float
+  trend           String               // RISING | STABLE | FALLING
+  riskLevel       PredictionRiskLevel  @default(LOW)
+  method          String               // moving_avg | time_of_day | causal_weighted | threshold_model
+  factors         Json                 // PredictionFactor[]
+  generatedAt     DateTime             @default(now())
+  expiresAt       DateTime
+  actualValue     Float?
+  error           Float?
+  scenarioId      String?              // STAR #3 scenario active when generated
+
+  @@index([domain, entityId, generatedAt(sort: Desc)])
+  @@index([metric, generatedAt(sort: Desc)])
+  @@index([expiresAt])
+  @@index([riskLevel, generatedAt(sort: Desc)])
+}
+
+enum PredictionRiskLevel {
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
 }
